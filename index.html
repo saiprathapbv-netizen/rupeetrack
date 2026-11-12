@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RupeeTrack PRO | Lending & Cash OS</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -41,7 +46,7 @@
       </div>
       <div>
         <h2 class="text-xl font-extrabold tracking-tight">RupeeTrack <span class="text-emerald-400">PRO</span></h2>
-        <p class="text-xs text-slate-400 mt-1">Weekly Lending & Cash OS (3-Day Grace)</p>
+        <p class="text-xs text-slate-400 mt-1">Weekly Lending & Cash OS (Cloud Auto-Sync)</p>
       </div>
       <form id="formPasscode" class="space-y-4">
         <input type="password" id="passcodeInput" maxlength="8" placeholder="••••" required autofocus class="w-full text-center text-2xl tracking-[0.5em] py-3 bg-slate-900 border border-slate-800 rounded-2xl text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold">
@@ -67,6 +72,7 @@
             <div class="flex items-center gap-1.5">
               <span class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-slate-100 via-emerald-100 to-teal-300 bg-clip-text text-transparent">RupeeTrack</span>
               <span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 uppercase tracking-widest shadow-sm">PRO</span>
+              <span id="cloudSyncBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏳ Connecting...</span>
             </div>
             <p class="text-[10px] text-slate-400 hidden sm:block">Weekly Collection OS (7d + 3d Grace = Due Day 10)</p>
           </div>
@@ -127,14 +133,14 @@
 
     <!-- BACKUP BANNER -->
     <div id="backupReminderBanner" class="hidden bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-300 flex items-center justify-between">
-      <span>⚠️ <strong>Backup Reminder:</strong> You haven't backed up your records in over 7 days. Download your JSON backup to keep your records safe.</span>
+      <span>⚠️ <strong>Backup Reminder:</strong> Download a local JSON backup periodically for offline archival.</span>
       <button id="btnQuickBackup" class="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded-lg text-[11px] hover:bg-amber-400">Download Backup</button>
     </div>
 
     <!-- MAIN VIEWPORT -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-      <!-- TAB 1: COCKPIT (IMPROVED OPERATIONAL EXECUTIVE VIEW) -->
+      <!-- TAB 1: COCKPIT -->
       <section id="tabCockpit" class="space-y-6">
         
         <!-- ROW 1: 4 PRIMARY KPI CARDS -->
@@ -322,7 +328,7 @@
         </div>
       </section>
 
-      <!-- TAB 3: REPAYMENTS (CLEAN & MINIMALIST) -->
+      <!-- TAB 3: REPAYMENTS -->
       <section id="tabRepayments" class="hidden space-y-4">
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div class="relative w-full sm:max-w-md">
@@ -404,7 +410,7 @@
         </div>
       </section>
 
-      <!-- TAB 5: CASH LEDGER (TOP-TO-BOTTOM ACCOUNTING AUDIT TRAIL) -->
+      <!-- TAB 5: CASH LEDGER -->
       <section id="tabLedger" class="hidden space-y-4">
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div class="text-xs text-slate-400">
@@ -467,7 +473,7 @@
             <h3 class="font-bold text-sm tracking-tight flex items-center gap-2">
               <span>💾</span> Data Backup & Migration
             </h3>
-            <p class="text-xs text-slate-400">Save a complete snapshot of your loans, repayments, and cash vouchers.</p>
+            <p class="text-xs text-slate-400">Your data auto-syncs via Firebase Cloud. Use these buttons to save or restore an offline JSON file.</p>
             <div class="flex flex-wrap gap-2 pt-2">
               <button id="btnExportJson" class="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl text-xs transition">
                 Download JSON Backup
@@ -499,7 +505,7 @@
             <h3 class="font-bold text-sm tracking-tight flex items-center gap-2 text-rose-400">
               <span>⚠️</span> Reset / Demo Data
             </h3>
-            <p class="text-xs text-slate-400">Seed sample accounts or completely reset local data.</p>
+            <p class="text-xs text-slate-400">Seed sample accounts or completely reset cloud & local data.</p>
             <div class="flex flex-wrap gap-2 pt-2">
               <button id="btnSeedDemo" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-2xl text-xs transition">
                 Load Sample Demo Records
@@ -666,7 +672,7 @@
     </div>
   </div>
 
-  <!-- MODAL: RECORD REPAYMENT (CLEAN, 1-TOUCH USER EXPERIENCE) -->
+  <!-- MODAL: RECORD REPAYMENT -->
   <div id="modalRepayment" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="app-card w-full max-w-md rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -681,11 +687,9 @@
         <div>
           <label class="block text-slate-400 font-semibold mb-1">Select Borrower / Loan</label>
           <select id="repayLoanSelect" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 font-medium text-xs focus:border-teal-500">
-            <!-- Dynamic Options -->
           </select>
         </div>
 
-        <!-- CLEAN 2-PANEL LIVE SUMMARY -->
         <div id="repayAccountDetails" class="hidden bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-2">
           <div class="flex justify-between items-center text-xs">
             <span class="text-slate-400">Current Balance:</span>
@@ -724,7 +728,6 @@
           </div>
         </div>
 
-        <!-- 3 ESSENTIAL QUICK BUTTONS -->
         <div class="flex items-center gap-2">
           <button type="button" id="btnChipDueAfterAdvance" class="flex-1 py-1.5 px-3 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-500/30 text-xs font-bold hover:bg-teal-500/25">
             Auto-Fill Due
@@ -1000,11 +1003,59 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <!-- JAVASCRIPT APPLICATION LOGIC WITH FIREBASE REALTIME CLOUD SYNC -->
   <script>
     const STORAGE_KEY = "rupeetrack_pro_state_v2";
     const PIN_KEY = "rupeetrack_pro_pin";
     const BACKUP_TIMESTAMP_KEY = "rupeetrack_pro_last_backup";
+
+    // YOUR CONFIGURED FIREBASE PROJECT
+    const firebaseConfig = {
+      apiKey: "AIzaSyCOL88PmYx_ayft-mUtQC0kcdGbEmBJ6Ng",
+      authDomain: "rupeetrack-709a1.firebaseapp.com",
+      databaseURL: "https://rupeetrack-709a1-default-rtdb.firebaseio.com",
+      projectId: "rupeetrack-709a1",
+      storageBucket: "rupeetrack-709a1.firebasestorage.app",
+      messagingSenderId: "1068606278913",
+      appId: "1:1068606278913:web:f8ad1d1aa345952f779f00"
+    };
+
+    let dbRef = null;
+    let isCloudSyncActive = false;
+
+    function updateSyncStatusBadge(status, label) {
+      const badge = document.getElementById("cloudSyncBadge");
+      if (!badge) return;
+      if (status === "SYNCED") {
+        badge.textContent = label || "☁️ Live Synced";
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
+      } else if (status === "SYNCING") {
+        badge.textContent = label || "🔄 Syncing...";
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30";
+      } else {
+        badge.textContent = label || "⚠️ Offline Mode";
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30";
+      }
+    }
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      dbRef = database.ref("rupeetrack_ledger");
+      isCloudSyncActive = true;
+
+      // Monitor real-time Firebase connection state
+      database.ref(".info/connected").on("value", (snap) => {
+        if (snap.val() === true) {
+          updateSyncStatusBadge("SYNCED", "☁️ Live Synced");
+        } else {
+          updateSyncStatusBadge("OFFLINE", "⚠️ Offline (Cached)");
+        }
+      });
+    } catch (err) {
+      console.warn("Firebase initialization error:", err);
+      updateSyncStatusBadge("OFFLINE", "⚠️ Local Only");
+    }
 
     let appState = {
       operatingDate: "2026-11-11",
@@ -1033,26 +1084,69 @@
     }
 
     function loadInitialState() {
+      // 1. Load local cache immediately for instant boot
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.loans) && parsed.loans.length > 0) {
             appState = parsed;
-            return;
           }
         }
       } catch (e) {
-        console.error("Storage parse error, resetting to seed data:", e);
+        console.error("Storage parse error:", e);
       }
-      seedDemoData();
+
+      // 2. Listen for live cloud updates across all devices
+      if (isCloudSyncActive && dbRef) {
+        dbRef.on("value", (snapshot) => {
+          const cloudData = snapshot.val();
+          if (cloudData) {
+            appState = {
+              operatingDate: cloudData.operatingDate || appState.operatingDate || "2026-11-11",
+              loans: Array.isArray(cloudData.loans) ? cloudData.loans : [],
+              payments: Array.isArray(cloudData.payments) ? cloudData.payments : [],
+              vouchers: Array.isArray(cloudData.vouchers) ? cloudData.vouchers : []
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            const opInput = document.getElementById("operatingDateInput");
+            if (opInput) opInput.value = appState.operatingDate;
+            renderAll();
+            updateSyncStatusBadge("SYNCED", "☁️ Live Synced");
+          } else {
+            // First-time cloud initialization: push local/demo data up to Firebase
+            if (!appState.loans || appState.loans.length === 0) {
+              seedDemoData();
+            } else {
+              saveState();
+            }
+          }
+        }, (error) => {
+          console.error("Firebase read failed:", error);
+          updateSyncStatusBadge("OFFLINE", "⚠️ Sync Permission Error");
+        });
+      } else if (!appState.loans || appState.loans.length === 0) {
+        seedDemoData();
+      }
     }
 
     function saveState() {
+      // Save locally for offline access
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
       } catch (e) {
         console.error("Failed to save state to localStorage:", e);
+      }
+
+      // Push immediately to Firebase Cloud
+      if (isCloudSyncActive && dbRef) {
+        updateSyncStatusBadge("SYNCING", "🔄 Saving...");
+        dbRef.set(appState)
+          .then(() => updateSyncStatusBadge("SYNCED", "☁️ Live Synced"))
+          .catch((err) => {
+            console.error("Cloud push failed:", err);
+            updateSyncStatusBadge("OFFLINE", "⚠️ Sync Failed");
+          });
       }
     }
 
@@ -1144,7 +1238,6 @@
       };
     }
 
-    // ACCURATE NET DUE (AFTER ADVANCE DEDUCTION)
     function getNetPacedDueAfterAdvance(fin) {
       if (fin.isSettled || fin.remainingDue <= 0) return 0;
 
@@ -1165,7 +1258,6 @@
       }
     }
 
-    // PROJECT EXACT NEXT DUE DATE AND NEXT DUE AMOUNT
     function getNextDueSchedule(loan, fin) {
       if (fin.isSettled || fin.remainingDue <= 0) {
         return { nextDate: "Settled", nextAmount: 0 };
@@ -1234,9 +1326,9 @@
       renderAll();
     }
 
-    // TOP-TO-BOTTOM ACCOUNTING AUDIT TRAIL
     function renderLedger() {
       const tbody = document.getElementById("ledgerTableBody");
+      if (!tbody) return;
       tbody.innerHTML = "";
 
       const events = [];
@@ -1296,7 +1388,6 @@
       });
     }
 
-    // ENHANCED COCKPIT RENDERING
     function renderCockpit() {
       const vaultCash = getAvailableVaultCash();
       document.getElementById("kpiVaultCash").textContent = formatCurrency(vaultCash);
@@ -1328,7 +1419,6 @@
         }
       });
 
-      // Today's Operating Velocity
       const opDate = appState.operatingDate;
       const todayPayments = appState.payments.filter(p => p.date === opDate);
       const todayLoans = appState.loans.filter(l => l.date === opDate);
@@ -1349,13 +1439,11 @@
       const remainingMarketBalance = Math.max(0, totalAgreed - totalCollected);
       document.getElementById("cockpitTotalOutstanding").textContent = formatCurrency(remainingMarketBalance);
 
-      // KPI CARDS
       document.getElementById("kpiActiveLoans").textContent = `${activeCount} Active Loans`;
       document.getElementById("kpiActivePrincipal").textContent = `Total Principal: ${formatCurrency(totalPrincipal)}`;
       document.getElementById("kpiAdvanceCredit").textContent = `+${formatCurrency(totalAdvanceCredit)}`;
       document.getElementById("kpiArrears").textContent = `-${formatCurrency(totalArrears)}`;
 
-      // RECOVERY BAR
       const recPercent = totalAgreed > 0 ? Math.min(100, Math.round((totalCollected / totalAgreed) * 100)) : 0;
       document.getElementById("cockpitRecoveryPercent").textContent = `${recPercent}%`;
       document.getElementById("cockpitRecoveryBar").style.width = `${recPercent}%`;
@@ -1375,7 +1463,6 @@
 
       document.getElementById("cockpitProjectedProfit").textContent = formatCurrency(Math.max(0, totalAgreed - totalPrincipal));
 
-      // PRIORITY LIST
       const priorityContainer = document.getElementById("cockpitPriorityList");
       const priorityBadge = document.getElementById("cockpitPriorityBadge");
       priorityBadge.textContent = `${priorityLoans.length} Overdue`;
@@ -1405,6 +1492,7 @@
 
     function renderLoans() {
       const tbody = document.getElementById("loansTableBody");
+      if (!tbody) return;
       const search = (document.getElementById("loanSearchInput")?.value || "").toLowerCase().trim();
       const filter = document.getElementById("loanFilterStatus")?.value || "ALL";
 
@@ -1487,9 +1575,9 @@
       });
     }
 
-    // RENDER REPAYMENTS (MINIMALIST 5-COLUMN VIEW)
     function renderRepayments() {
       const tbody = document.getElementById("repaymentsTableBody");
+      if (!tbody) return;
       const search = (document.getElementById("repaymentSearchInput")?.value || "").toLowerCase().trim();
 
       tbody.innerHTML = "";
@@ -1559,6 +1647,7 @@
 
     function renderVouchers() {
       const tbody = document.getElementById("vouchersTableBody");
+      if (!tbody) return;
       const filter = document.getElementById("voucherFilterType")?.value || "ALL";
 
       tbody.innerHTML = "";
@@ -1620,6 +1709,7 @@
 
     function renderBorrowers() {
       const grid = document.getElementById("borrowersGrid");
+      if (!grid) return;
       const search = (document.getElementById("borrowerSearchInput")?.value || "").toLowerCase().trim();
       const filter = document.getElementById("borrowerStatusFilter")?.value || "ALL";
 
@@ -1743,7 +1833,6 @@
       document.getElementById("receiptSlipRemaining").textContent = formatCurrency(fin.remainingDue);
       document.getElementById("receiptSlipNextDate").textContent = nextSched.nextDate;
 
-      // Pending Due Display Logic
       const pendingRow = document.getElementById("receiptPendingDueRow");
       const pendingLabel = document.getElementById("receiptPendingDueLabel");
       const pendingAmtEl = document.getElementById("receiptPendingDueAmount");
@@ -1768,7 +1857,6 @@
         pendingRow.classList.add("hidden");
       }
 
-      // WhatsApp Message Formatting
       const waBtn = document.getElementById("btnShareWhatsAppReceipt");
       if (waBtn) {
         const phone = sanitizePhoneForWhatsApp(loan?.phone);
@@ -1830,7 +1918,6 @@
       document.getElementById("disbursalReceiptModal").classList.add("flex");
     }
 
-    // LIVE REPAYMENT DUE PREVIEW
     function updateLiveRepaymentPreview() {
       const loanId = document.getElementById("repayLoanSelect").value;
       const loan = appState.loans.find(l => l.id === loanId);
@@ -1873,7 +1960,6 @@
       }
     }
 
-    // OPEN EDIT MODALS
     function openEditLoanModal(loanId) {
       const loan = appState.loans.find(l => l.id === loanId);
       if (!loan) return;
@@ -1923,7 +2009,6 @@
     document.addEventListener("DOMContentLoaded", () => {
       loadInitialState();
 
-      // Auth Gate
       const lockScreen = document.getElementById("lockScreen");
       const appContainer = document.getElementById("appContainer");
       const formPasscode = document.getElementById("formPasscode");
@@ -1961,7 +2046,6 @@
         document.getElementById("newPinInput").value = "";
       });
 
-      // Operating Date
       const opInput = document.getElementById("operatingDateInput");
       opInput.value = appState.operatingDate;
       opInput.addEventListener("change", (e) => {
@@ -1970,12 +2054,10 @@
         renderAll();
       });
 
-      // Tab Links
       document.querySelectorAll(".tab-link").forEach(btn => {
         btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
       });
 
-      // Quick Action triggers on Cockpit
       document.getElementById("btnQuickCollectTrigger")?.addEventListener("click", () => openRepayModal());
       document.getElementById("btnQuickDisburseTrigger")?.addEventListener("click", () => openLoanModal());
       document.getElementById("btnViewAllArrears")?.addEventListener("click", () => {
@@ -1987,7 +2069,6 @@
         }
       });
 
-      // Modal Close Handlers
       document.querySelectorAll(".modal-close").forEach(btn => {
         btn.addEventListener("click", () => {
           document.querySelectorAll("[id^='modal'], [id$='Modal']").forEach(m => {
@@ -1997,7 +2078,6 @@
         });
       });
 
-      // Backup Handlers
       const doBackup = () => {
         const blob = new Blob([JSON.stringify(appState, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -2023,7 +2103,7 @@
               appState = data;
               saveState();
               renderAll();
-              alert("Data restored successfully!");
+              alert("Data restored and synced to Firebase Cloud!");
             } else {
               alert("Invalid JSON format.");
             }
@@ -2048,20 +2128,19 @@
       });
 
       document.getElementById("btnSeedDemo")?.addEventListener("click", () => {
-        if (confirm("Restore sample demo records? Current records will be replaced.")) {
+        if (confirm("Restore sample demo records? Current cloud & local records will be replaced.")) {
           seedDemoData();
           renderAll();
         }
       });
       document.getElementById("btnClearStorage")?.addEventListener("click", () => {
-        if (confirm("Permanently wipe all records? Make sure to download a backup first.")) {
+        if (confirm("Permanently wipe all cloud & local records? Make sure to download a backup first.")) {
           appState = { operatingDate: new Date().toISOString().split("T")[0], loans: [], payments: [], vouchers: [] };
           saveState();
           renderAll();
         }
       });
 
-      // DISBURSE LOAN MODAL
       const openLoanModal = () => {
         const avail = getAvailableVaultCash();
         document.getElementById("modalNewLoanVaultAvailable").textContent = formatCurrency(avail);
@@ -2139,7 +2218,6 @@
         openDisbursalVoucher(newId);
       });
 
-      // EDIT LOAN
       document.getElementById("editLoanPrincipal")?.addEventListener("input", (e) => {
         const loanId = document.getElementById("editLoanId").value;
         const currentLoan = appState.loans.find(l => l.id === loanId);
@@ -2187,7 +2265,6 @@
         renderAll();
       });
 
-      // REPAYMENT MODAL & QUICK BUTTONS
       const openRepayModal = (preselectedLoanId = null) => {
         const select = document.getElementById("repayLoanSelect");
         select.innerHTML = `<option value="">-- Choose Borrower Account --</option>`;
@@ -2225,19 +2302,16 @@
           const fin = getLoanFinancials(loan);
           const netDueToday = getNetPacedDueAfterAdvance(fin);
 
-          // 1. Auto-Fill Due Chip
           document.getElementById("btnChipDueAfterAdvance").onclick = () => {
             document.getElementById("repayAmount").value = netDueToday;
             updateLiveRepaymentPreview();
           };
 
-          // 2. 1x Weekly Installment (7k)
           document.getElementById("btnChipWeekly").onclick = () => {
             document.getElementById("repayAmount").value = Math.min(fin.remainingDue, fin.weeklyRate);
             updateLiveRepaymentPreview();
           };
 
-          // 3. Clear Full Balance
           document.getElementById("btnChipFullPay").onclick = () => {
             document.getElementById("repayAmount").value = fin.remainingDue;
             updateLiveRepaymentPreview();
@@ -2282,7 +2356,6 @@
         openRepaymentReceipt(newRecId);
       });
 
-      // EDIT REPAYMENT
       document.getElementById("editRepayAmount")?.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value) || 0;
         const max = parseFloat(e.target.max) || Infinity;
@@ -2323,7 +2396,6 @@
         renderAll();
       });
 
-      // VOUCHERS MODAL
       const openVoucherModal = (type = "INFLOW") => {
         const avail = getAvailableVaultCash();
         document.getElementById("modalVoucherVaultAvailable").textContent = formatCurrency(avail);
@@ -2396,7 +2468,6 @@
         renderAll();
       });
 
-      // GLOBAL TABLE ACTIONS
       document.addEventListener("click", (e) => {
         const target = e.target.closest("button");
         if (!target) return;
