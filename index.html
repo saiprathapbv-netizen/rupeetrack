@@ -1,5689 +1,2845 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>RupeeTrack PRO | Lending & Cash OS</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
-
   
-
   <!-- Firebase Realtime Database SDKs -->
-
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
-
-
   <script>
-
     tailwind.config = {
-
       darkMode: 'class',
-
       theme: {
-
         extend: {
-
           colors: {
-
             brand: { 50: '#f0fdf4', 500: '#10b981', 600: '#059669', 700: '#047857' },
-
             slate: { 850: '#0f172a', 900: '#0b1120', 950: '#020617' }
-
           }
-
         }
-
       }
-
     }
-
   </script>
-
   <style>
-
     @media print {
-
       body * { visibility: hidden !important; }
-
       #printableReceiptArea, #printableReceiptArea * { visibility: visible !important; }
-
       #printableReceiptArea { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
-
       #printableDisbursalArea, #printableDisbursalArea * { visibility: visible !important; }
-
       #printableDisbursalArea { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
-
     }
-
     .scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
-
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-
     .app-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); border-color: rgba(255, 255, 255, 0.08); }
-
   </style>
-
 </head>
-
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white pb-14 sm:pb-0">
 
-
-
   <!-- PASSCODE LOCK SCREEN -->
-
   <div id="lockScreen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
-
     <div class="app-card w-full max-w-sm p-8 rounded-3xl border border-slate-800 text-center shadow-2xl space-y-5">
-
       <div class="w-14 h-14 mx-auto rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-black text-2xl text-slate-950 shadow-xl shadow-emerald-500/20">
-
         ₹
-
       </div>
-
       <div>
-
         <div class="flex items-center justify-center gap-2">
-
           <h2 class="text-xl font-extrabold tracking-tight">RupeeTrack <span class="text-emerald-400">PRO</span></h2>
-
           <span id="lockSyncStatus" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏳ Connecting...</span>
-
         </div>
-
         <p class="text-xs text-slate-400 mt-1">Weekly Lending & Cash OS (Cloud Auto-Sync)</p>
-
       </div>
-
       <form id="formPasscode" class="space-y-4">
-
         <input type="password" id="passcodeInput" maxlength="8" placeholder="••••" required autofocus class="w-full text-center text-2xl tracking-[0.5em] py-3 bg-slate-900 border border-slate-800 rounded-2xl text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold">
-
         <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl text-sm transition shadow-lg shadow-emerald-500/20">
-
           Unlock Dashboard
-
         </button>
-
       </form>
-
       <p class="text-[10px] text-slate-500">Default Passcode: <strong>1234</strong> (Cloud Synced)</p>
-
     </div>
-
   </div>
 
-
-
   <!-- APPLICATION WRAPPER -->
-
   <div id="appContainer" class="hidden flex-1 flex flex-col">
 
-
-
     <!-- TOP HEADER -->
-
     <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-md">
-
       <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
-
         <div class="flex items-center gap-3">
-
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-black text-xl text-slate-950">
-
             ₹
-
           </div>
-
           <div>
-
             <div class="flex items-center gap-1.5">
-
               <span class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-slate-100 via-emerald-100 to-teal-300 bg-clip-text text-transparent">RupeeTrack</span>
-
               <span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 uppercase tracking-widest shadow-sm">PRO</span>
-
               <span id="cloudSyncBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏳ Connecting...</span>
-
             </div>
-
             <p class="text-[10px] text-slate-400 hidden sm:block">Weekly Collection OS (7d + 3d Grace = Due Day 10)</p>
-
           </div>
-
         </div>
-
-
 
         <div class="flex items-center gap-2 sm:gap-3">
-
           <div class="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700">
-
             <span class="text-xs text-slate-400">📅</span>
-
             <label for="operatingDateInput" class="text-[10px] uppercase font-bold text-slate-400 hidden md:inline">Date:</label>
-
             <input type="date" id="operatingDateInput" class="bg-transparent text-xs font-semibold text-emerald-400 focus:outline-none cursor-pointer">
-
           </div>
-
-
 
           <button id="btnOpenNewLoan" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-lg shadow-emerald-500/20 whitespace-nowrap">
-
             <span>+ Disburse Loan</span>
-
           </button>
-
           
-
           <button id="btnTopOpenRepay" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 transition shadow-lg shadow-teal-500/20 whitespace-nowrap">
-
             <span>+ Record Repayment</span>
-
           </button>
-
-
 
           <button id="btnOpenVoucher" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition whitespace-nowrap">
-
             <span>± Cash In/Out</span>
-
           </button>
-
-
 
           <button id="btnLockApp" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700" title="Lock App">
-
             🔒
-
           </button>
-
         </div>
-
       </div>
-
-
 
       <!-- NAVIGATION TABS -->
-
       <div class="hidden sm:block border-t border-slate-800/60 bg-slate-900/50">
-
         <div class="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto scrollbar-thin">
-
           <button data-tab="tabCockpit" class="tab-link px-4 py-2.5 text-xs font-semibold text-emerald-400 border-b-2 border-emerald-400 flex items-center gap-1.5 whitespace-nowrap">
-
             <span>📊</span> Cockpit
-
           </button>
-
           <button data-tab="tabLoans" class="tab-link px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5 whitespace-nowrap">
-
             <span>📋</span> Loans Register
-
           </button>
-
           <button data-tab="tabRepayments" class="tab-link px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5 whitespace-nowrap">
-
             <span>💵</span> Repayments
-
           </button>
-
           <button data-tab="tabVouchers" class="tab-link px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5 whitespace-nowrap">
-
             <span>🏦</span> Deposits & Withdrawals
-
           </button>
-
           <button data-tab="tabLedger" class="tab-link px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5 whitespace-nowrap">
-
             <span>📑</span> Cash Ledger
-
           </button>
-
           <button data-tab="tabBorrowers" class="tab-link px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5 whitespace-nowrap">
-
             <span>👥</span> Borrowers CRM
-
           </button>
-
           <button data-tab="tabTools" class="tab-link px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5 whitespace-nowrap">
-
             <span>⚙️</span> Tools & Backup
-
           </button>
-
         </div>
-
       </div>
-
     </header>
 
-
-
     <!-- BACKUP BANNER -->
-
     <div id="backupReminderBanner" class="hidden bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-300 flex items-center justify-between">
-
       <span>⚠️ <strong>Backup Reminder:</strong> Download a local JSON backup periodically for offline archival.</span>
-
       <button id="btnQuickBackup" class="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded-lg text-[11px] hover:bg-amber-400">Download Backup</button>
-
     </div>
 
-
-
     <!-- MAIN VIEWPORT -->
-
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-
-
       <!-- TAB 1: COCKPIT -->
-
       <section id="tabCockpit" class="space-y-6">
-
         
-
         <!-- ROW 1: 4 PRIMARY KPI CARDS -->
-
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-
           <div class="app-card p-4 sm:p-5 rounded-3xl border shadow-lg relative overflow-hidden">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-
               <span>Vault Net Cash</span>
-
               <span class="text-xs">🏦</span>
-
             </div>
-
             <div id="kpiVaultCash" class="text-xl sm:text-2xl font-black mt-1 text-emerald-400 tracking-tight">₹0</div>
-
             <div class="text-[10px] text-slate-500 mt-1">● Current Vault Liquidity</div>
-
           </div>
 
-
-
           <div class="app-card p-4 sm:p-5 rounded-3xl border shadow-lg relative overflow-hidden">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-
               <span>Active Portfolio</span>
-
               <span class="text-xs">📋</span>
-
             </div>
-
             <div id="kpiActiveLoans" class="text-xl sm:text-2xl font-black mt-1 text-slate-100 tracking-tight">0 Loans</div>
-
             <div id="kpiActivePrincipal" class="text-[10px] text-slate-400 mt-1">Total Principal: ₹0</div>
-
           </div>
 
-
-
           <div class="app-card p-4 sm:p-5 rounded-3xl border shadow-lg relative overflow-hidden">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-
               <span>Advance Credit</span>
-
               <span class="text-xs">🟢</span>
-
             </div>
-
             <div id="kpiAdvanceCredit" class="text-xl sm:text-2xl font-black mt-1 text-teal-400 tracking-tight">+₹0</div>
-
             <div class="text-[10px] text-teal-500/80 mt-1">Prepaid Ahead of Schedule</div>
-
           </div>
-
-
 
           <div class="app-card p-4 sm:p-5 rounded-3xl border shadow-lg relative overflow-hidden">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-
               <span>Overdue Arrears</span>
-
               <span class="text-xs">🚨</span>
-
             </div>
-
             <div id="kpiArrears" class="text-xl sm:text-2xl font-black mt-1 text-rose-400 tracking-tight">-₹0</div>
-
             <div class="text-[10px] text-rose-400/80 mt-1">Past 10-Day Grace Window</div>
-
           </div>
-
         </div>
-
-
 
         <!-- ROW 2: TODAY'S OPERATIONAL SUMMARY STRIP -->
-
         <div class="app-card p-4 rounded-3xl border shadow-lg">
-
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-
             <div class="flex items-center gap-2">
-
               <span class="text-base">📅</span>
-
               <span class="text-xs font-bold text-slate-300">Daily Cash Velocity Summary</span>
-
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400" id="cockpitTodayLabel">Today</span>
-
             </div>
-
             <div class="flex items-center gap-2 w-full sm:w-auto">
-
               <button id="btnQuickCollectTrigger" class="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 border border-teal-500/30 text-xs font-bold transition">
-
                 + Collect Due
-
               </button>
-
               <button id="btnQuickDisburseTrigger" class="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs font-bold transition">
-
                 + Disburse
-
               </button>
-
             </div>
-
           </div>
-
           
-
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 text-xs">
-
             <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
               <span class="text-slate-400 text-[10px] block">Collected Today</span>
-
               <strong id="cockpitTodayCollected" class="text-emerald-400 font-extrabold text-sm sm:text-base">₹0</strong>
-
               <span id="cockpitTodayRepayCount" class="text-[10px] text-slate-500 block mt-0.5">0 repayments</span>
-
             </div>
-
             <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
               <span class="text-slate-400 text-[10px] block">Disbursed Today</span>
-
               <strong id="cockpitTodayDisbursed" class="text-rose-400 font-extrabold text-sm sm:text-base">₹0</strong>
-
               <span id="cockpitTodayDisburseCount" class="text-[10px] text-slate-500 block mt-0.5">0 loans issued</span>
-
             </div>
-
             <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
               <span class="text-slate-400 text-[10px] block">Net Inflow Today</span>
-
               <strong id="cockpitTodayNetFlow" class="text-slate-100 font-extrabold text-sm sm:text-base">₹0</strong>
-
               <span class="text-[10px] text-slate-500 block mt-0.5">Vault Net Movement</span>
-
             </div>
-
             <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
               <span class="text-slate-400 text-[10px] block">Remaining Market Due</span>
-
               <strong id="cockpitTotalOutstanding" class="text-amber-300 font-extrabold text-sm sm:text-base">₹0</strong>
-
               <span class="text-[10px] text-slate-500 block mt-0.5">Principal + Profit Balance</span>
-
             </div>
-
           </div>
-
         </div>
-
-
 
         <!-- ROW 3: RECOVERY PROGRESS & PRIORITY COLLECTION PANEL -->
-
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
           <div class="app-card p-5 rounded-3xl border shadow-lg lg:col-span-2 space-y-4">
-
             <div class="flex items-center justify-between">
-
               <h3 class="font-bold text-sm tracking-tight flex items-center gap-2">
-
                 <span>🎯</span> Portfolio Recovery & Profit Target
-
               </h3>
-
               <span id="cockpitDateEcho" class="text-xs text-slate-400 font-medium">As of Operating Date</span>
-
             </div>
-
-
 
             <div class="space-y-2">
-
               <div class="flex justify-between text-xs">
-
                 <span class="text-slate-400">Total Agreed Recovery Rate</span>
-
                 <span id="cockpitRecoveryPercent" class="font-bold text-emerald-400">0%</span>
-
               </div>
-
               <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden p-0.5 border border-slate-700">
-
                 <div id="cockpitRecoveryBar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-
               </div>
-
               <div class="flex justify-between text-[11px] text-slate-500">
-
                 <span id="cockpitCollectedSummary">Collected: ₹0</span>
-
                 <span id="cockpitRemainingSummary">Balance Due: ₹0</span>
-
               </div>
-
             </div>
-
-
 
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 text-xs border-t border-slate-800">
-
               <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
                 <span class="text-slate-400 block text-[10px]">Expected Billed Target</span>
-
                 <span id="cockpitTargetDue" class="font-bold text-slate-200 text-sm">₹0</span>
-
               </div>
-
               <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
                 <span class="text-slate-400 block text-[10px]">Net Pacing Status</span>
-
                 <span id="cockpitNetStatus" class="font-bold text-emerald-400 text-sm">On Track</span>
-
               </div>
-
               <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-800 col-span-2 sm:col-span-1">
-
                 <span class="text-slate-400 block text-[10px]">Projected Profit</span>
-
                 <span id="cockpitProjectedProfit" class="font-bold text-teal-400 text-sm">₹0</span>
-
               </div>
-
             </div>
-
           </div>
-
-
 
           <!-- PRIORITY COLLECTIONS -->
-
           <div class="app-card p-5 rounded-3xl border shadow-lg space-y-3 flex flex-col justify-between">
-
             <div>
-
               <div class="flex items-center justify-between">
-
                 <h3 class="font-bold text-sm tracking-tight flex items-center gap-2">
-
                   <span>⚡</span> Priority Collections
-
                 </h3>
-
                 <span id="cockpitPriorityBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300">0 Overdue</span>
-
               </div>
-
               <p class="text-xs text-slate-400 mt-1">Borrowers with pending arrears past the 10-day grace window:</p>
-
             </div>
-
             
-
             <div id="cockpitPriorityList" class="space-y-2 text-xs max-h-56 overflow-y-auto pr-1 scrollbar-thin flex-1 mt-2"></div>
-
             
-
             <button id="btnViewAllArrears" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition text-center mt-2">
-
               View All in Loans Register →
-
             </button>
-
           </div>
-
         </div>
-
       </section>
-
-
 
       <!-- TAB 2: LOANS REGISTER -->
-
       <section id="tabLoans" class="hidden space-y-4">
-
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
-
           <div class="flex flex-1 w-full sm:w-auto items-center gap-2">
-
             <input type="text" id="loanSearchInput" placeholder="Search by Loan ID, Txn ID, Borrower, Phone..." class="w-full sm:max-w-xs px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500">
-
             <select id="loanFilterStatus" class="px-3 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer">
-
               <option value="ALL">All Accounts</option>
-
               <option value="ACTIVE">Active (Unsettled)</option>
-
               <option value="OVERDUE">Overdue (>100 Days)</option>
-
               <option value="CRITICAL">Critical Delinquent (>120 Days)</option>
-
               <option value="ADVANCE">In Advance (Prepaid)</option>
-
               <option value="ARREARS">In Arrears (Deficit)</option>
-
               <option value="SETTLED">Settled</option>
-
             </select>
-
           </div>
-
           <button id="btnLoansDisburseTrigger" class="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl text-xs shadow-lg shadow-emerald-500/20">
-
             + Disburse Loan
-
           </button>
-
         </div>
-
-
 
         <div class="app-card rounded-3xl border shadow-lg overflow-hidden">
-
           <div class="overflow-x-auto">
-
             <table class="w-full text-left text-xs whitespace-nowrap">
-
               <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-
                 <tr>
-
                   <th class="py-3 px-4">Loan ID / Date / Txn</th>
-
                   <th class="py-3 px-4">Borrower Info</th>
-
                   <th class="py-3 px-4">Cycle / Day</th>
-
                   <th class="py-3 px-4 text-right">Principal</th>
-
                   <th class="py-3 px-4 text-right">Agreed Due</th>
-
                   <th class="py-3 px-4 text-right">Collected</th>
-
                   <th class="py-3 px-4 text-right">Balance Due</th>
-
                   <th class="py-3 px-4 text-center">Velocity</th>
-
                   <th class="py-3 px-4 text-center">Status</th>
-
                   <th class="py-3 px-4 text-center">Actions</th>
-
                 </tr>
-
               </thead>
-
               <tbody id="loansTableBody" class="divide-y divide-slate-800/60 font-medium"></tbody>
-
             </table>
-
           </div>
-
         </div>
-
       </section>
-
-
 
       <!-- TAB 3: REPAYMENTS -->
-
       <section id="tabRepayments" class="hidden space-y-4">
-
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
-
           <div class="relative w-full sm:max-w-md">
-
             <input type="text" id="repaymentSearchInput" placeholder="Search by Receipt, Txn ID, Loan, or Borrower..." class="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-teal-500">
-
             <span class="absolute left-3 top-2.5 text-xs text-slate-500">🔍</span>
-
           </div>
-
           <button id="btnOpenRepaymentModal" class="w-full sm:w-auto px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-2xl text-xs shadow-lg shadow-teal-500/20 flex items-center justify-center gap-1.5">
-
             <span>+ Record Repayment</span>
-
           </button>
-
         </div>
-
-
 
         <div class="app-card rounded-3xl border shadow-lg overflow-hidden">
-
           <div class="overflow-x-auto">
-
             <table class="w-full text-left text-xs whitespace-nowrap">
-
               <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-
                 <tr>
-
                   <th class="py-3 px-4">Receipt / Date</th>
-
                   <th class="py-3 px-4">Borrower & Account</th>
-
                   <th class="py-3 px-4">Mode & Txn ID</th>
-
                   <th class="py-3 px-4 text-right">Amount Paid</th>
-
                   <th class="py-3 px-4 text-center">Status</th>
-
                   <th class="py-3 px-4 text-center">Actions</th>
-
                 </tr>
-
               </thead>
-
               <tbody id="repaymentsTableBody" class="divide-y divide-slate-800/60 font-medium"></tbody>
-
             </table>
-
           </div>
-
         </div>
-
       </section>
-
-
 
       <!-- TAB 4: DEPOSITS & WITHDRAWALS -->
-
       <section id="tabVouchers" class="hidden space-y-4">
-
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-
           <div class="app-card p-4 rounded-3xl border shadow-lg">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase">Total Deposits (Cash In)</div>
-
             <div id="kpiTotalDeposits" class="text-xl font-black mt-1 text-emerald-400">₹0</div>
-
           </div>
-
           <div class="app-card p-4 rounded-3xl border shadow-lg">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase">Total Withdrawals (Cash Out)</div>
-
             <div id="kpiTotalWithdrawals" class="text-xl font-black mt-1 text-rose-400">₹0</div>
-
           </div>
-
           <div class="app-card p-4 rounded-3xl border shadow-lg">
-
             <div class="text-[11px] font-semibold text-slate-400 uppercase">Net Movement</div>
-
             <div id="kpiNetVoucherMovement" class="text-xl font-black mt-1 text-slate-100">₹0</div>
-
           </div>
-
         </div>
-
-
 
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
-
           <div class="flex flex-1 w-full sm:w-auto items-center gap-2">
-
             <input type="text" id="voucherSearchInput" placeholder="Search Voucher ID, Txn ID, Counterparty..." class="w-full sm:max-w-xs px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500">
-
             <select id="voucherFilterType" class="px-3 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer">
-
               <option value="ALL">All Cash In & Out</option>
-
               <option value="INFLOW">Deposits (Inflows)</option>
-
               <option value="OUTFLOW">Withdrawals (Outflows)</option>
-
             </select>
-
           </div>
-
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-
             <button id="btnQuickDeposit" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl text-xs transition">
-
               + Deposit (Cash In)
-
             </button>
-
             <button id="btnQuickWithdrawal" class="px-3 py-2 bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold rounded-2xl text-xs transition">
-
               - Withdrawal (Cash Out)
-
             </button>
-
           </div>
-
         </div>
-
-
 
         <div class="app-card rounded-3xl border shadow-lg overflow-hidden">
-
           <div class="overflow-x-auto">
-
             <table class="w-full text-left text-xs whitespace-nowrap">
-
               <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-
                 <tr>
-
                   <th class="py-3 px-4">Voucher ID / Date</th>
-
                   <th class="py-3 px-4">Flow Type</th>
-
                   <th class="py-3 px-4">Category & Mode</th>
-
                   <th class="py-3 px-4">Counterparty & Txn ID</th>
-
                   <th class="py-3 px-4 text-right">Amount</th>
-
                   <th class="py-3 px-4 text-center">Actions</th>
-
                 </tr>
-
               </thead>
-
               <tbody id="vouchersTableBody" class="divide-y divide-slate-800/60 font-medium"></tbody>
-
             </table>
-
           </div>
-
         </div>
-
       </section>
-
-
 
       <!-- TAB 5: CASH LEDGER -->
-
       <section id="tabLedger" class="hidden space-y-4">
-
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
-
           <div class="text-xs text-slate-400">
-
             Chronological audit trail of all disbursements, repayments, and vouchers (with Transaction IDs).
-
           </div>
-
           <div class="flex items-center gap-2">
-
             <button id="btnLedgerCashIn" class="px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold hover:bg-emerald-500/30">
-
               + Deposit
-
             </button>
-
             <button id="btnLedgerCashOut" class="px-3 py-1.5 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold hover:bg-rose-500/30">
-
               - Withdrawal
-
             </button>
-
           </div>
-
         </div>
-
-
 
         <div class="app-card rounded-3xl border shadow-lg overflow-hidden">
-
           <div class="overflow-x-auto">
-
             <table class="w-full text-left text-xs whitespace-nowrap">
-
               <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-
                 <tr>
-
                   <th class="py-3 px-4">Date</th>
-
                   <th class="py-3 px-4">Transaction Type</th>
-
                   <th class="py-3 px-4">Reference, Counterparty & Txn ID</th>
-
                   <th class="py-3 px-4 text-right">Inflow (+)</th>
-
                   <th class="py-3 px-4 text-right">Outflow (-)</th>
-
                   <th class="py-3 px-4 text-right font-black">Running Cash</th>
-
                 </tr>
-
               </thead>
-
               <tbody id="ledgerTableBody" class="divide-y divide-slate-800/60 font-medium"></tbody>
-
             </table>
-
           </div>
-
         </div>
-
       </section>
-
-
 
       <!-- TAB 6: BORROWERS CRM -->
-
       <section id="tabBorrowers" class="hidden space-y-4">
-
         <div class="app-card p-4 rounded-3xl border shadow-lg flex flex-col sm:flex-row gap-3 items-center justify-between">
-
           <div class="flex flex-1 w-full sm:w-auto items-center gap-2.5">
-
             <input type="text" id="borrowerSearchInput" placeholder="Search borrowers by name or phone..." class="w-full max-w-sm px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500">
-
             <select id="borrowerStatusFilter" class="px-3 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer">
-
               <option value="ALL">All Borrowers</option>
-
               <option value="ADVANCE">🟢 In Advance (Prepaid)</option>
-
               <option value="ON_TRACK">🔵 On-Track</option>
-
               <option value="ARREARS">🚨 In Arrears (Deficit)</option>
-
               <option value="SETTLED">✓ Settled (Closed)</option>
-
             </select>
-
           </div>
-
           <div id="borrowerCountBadge" class="text-xs font-bold text-slate-400 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
-
             Showing: 0 Borrowers
-
           </div>
-
         </div>
-
-
 
         <div id="borrowersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
       </section>
-
-
 
       <!-- TAB 7: TOOLS & BACKUP -->
-
       <section id="tabTools" class="hidden space-y-6">
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
           <div class="app-card p-5 rounded-3xl border shadow-lg space-y-4">
-
             <h3 class="font-bold text-sm tracking-tight flex items-center gap-2">
-
               <span>💾</span> Data Backup & Migration
-
             </h3>
-
             <p class="text-xs text-slate-400">Your data auto-syncs via Firebase Cloud. Use these buttons to save or restore an offline JSON file.</p>
-
             <div class="flex flex-wrap gap-2 pt-2">
-
               <button id="btnExportJson" class="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl text-xs transition">
-
                 Download JSON Backup
-
               </button>
-
               <label class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-2xl text-xs cursor-pointer transition">
-
                 Restore JSON Backup
-
                 <input type="file" id="importJsonInput" accept=".json" class="hidden">
-
               </label>
-
               <button id="btnExportCsv" class="px-3.5 py-2 bg-teal-500/20 text-teal-300 border border-teal-500/30 hover:bg-teal-500/30 font-bold rounded-2xl text-xs transition">
-
                 Export Loans CSV
-
               </button>
-
             </div>
-
           </div>
-
-
 
           <div class="app-card p-5 rounded-3xl border shadow-lg space-y-4">
-
             <h3 class="font-bold text-sm tracking-tight flex items-center gap-2">
-
               <span>🔒</span> Security PIN Configuration (Cloud Synced)
-
             </h3>
-
             <p class="text-xs text-slate-400">Update master security passcode—syncs automatically across all devices.</p>
-
             <form id="formChangePin" class="flex items-center gap-2 pt-2">
-
               <input type="password" id="newPinInput" maxlength="8" placeholder="New PIN" required class="px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs focus:outline-none focus:border-emerald-500">
-
               <button type="submit" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-2xl text-xs transition">
-
                 Update PIN
-
               </button>
-
             </form>
-
           </div>
-
-
 
           <div class="app-card p-5 rounded-3xl border shadow-lg space-y-4 md:col-span-2">
-
             <h3 class="font-bold text-sm tracking-tight flex items-center gap-2 text-rose-400">
-
               <span>⚠️</span> Reset / Demo Data
-
             </h3>
-
             <p class="text-xs text-slate-400">Seed sample accounts or completely reset cloud & local data.</p>
-
             <div class="flex flex-wrap gap-2 pt-2">
-
               <button id="btnSeedDemo" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-2xl text-xs transition">
-
                 Load Sample Demo Records
-
               </button>
-
               <button id="btnClearStorage" class="px-3.5 py-2 bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 font-bold rounded-2xl text-xs transition">
-
                 Clear All Data
-
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
-
-
 
     </main>
 
-
-
     <!-- MOBILE BOTTOM BAR -->
-
     <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 flex justify-around py-2 px-1">
-
       <button data-tab="tabCockpit" class="tab-link flex flex-col items-center gap-1 text-[10px] font-semibold text-emerald-400">
-
         <span>📊</span> Cockpit
-
       </button>
-
       <button data-tab="tabLoans" class="tab-link flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400">
-
         <span>📋</span> Loans
-
       </button>
-
       <button data-tab="tabRepayments" class="tab-link flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400">
-
         <span>💵</span> Pay
-
       </button>
-
       <button data-tab="tabVouchers" class="tab-link flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400">
-
         <span>🏦</span> In/Out
-
       </button>
-
       <button data-tab="tabBorrowers" class="tab-link flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400">
-
         <span>👥</span> Clients
-
       </button>
-
       <button data-tab="tabTools" class="tab-link flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400">
-
         <span>⚙️</span> Tools
-
       </button>
-
     </nav>
-
   </div>
-
-
 
   <!-- MODAL: NEW LOAN DISBURSAL -->
-
   <div id="modalNewLoan" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-lg rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
         <h3 class="font-extrabold text-base tracking-tight text-emerald-400">Disburse New Loan</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-
         <span class="text-slate-400">Available Vault Cash:</span>
-
         <strong id="modalNewLoanVaultAvailable" class="text-emerald-400 font-bold">₹0</strong>
-
       </div>
-
       <div id="newLoanBalanceWarning" class="hidden bg-rose-500/15 border border-rose-500/30 text-rose-300 p-3 rounded-2xl text-xs font-semibold">
-
         ⚠️ Insufficient Vault Balance! Disbursal amount exceeds available vault cash.
-
       </div>
-
-
 
       <form id="formNewLoan" class="space-y-3 text-xs">
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Disbursal Date</label>
-
             <input type="date" id="newLoanDate" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Collection Model</label>
-
             <select id="newLoanScheduleType" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold text-emerald-400">
-
               <option value="WEEKLY_7D_3D_GRACE">Weekly (7k / 7d + 3d Grace = Due Day 10)</option>
-
               <option value="DAILY">Daily Installment</option>
-
             </select>
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Borrower Full Name</label>
-
             <input type="text" id="newLoanBorrower" required placeholder="e.g. Ramesh Kumar" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Phone (10 Digits)</label>
-
             <input type="tel" id="newLoanPhone" placeholder="e.g. 9876543210" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Principal Disbursed (₹)</label>
-
             <input type="number" id="newLoanPrincipal" required min="500" step="100" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Agreed Total Due (₹)</label>
-
             <input type="number" id="newLoanAgreedDue" required min="500" step="100" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold">
-
           </div>
-
         </div>
-
-
 
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Disbursal Mode</label>
-
             <select id="newLoanMode" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-medium">
-
               <option value="Cash">Physical Cash</option>
-
               <option value="UPI">UPI / GPay / PhonePe</option>
-
               <option value="Bank">Bank Transfer / IMPS</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Transaction / UTR ID</label>
-
             <input type="text" id="newLoanTxnId" placeholder="Auto-generated if blank" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono">
-
           </div>
-
         </div>
-
-
 
         <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 flex justify-between">
-
           <span>Standard Weekly Installment:</span>
-
           <strong id="newLoanInstallmentTarget" class="text-slate-200">₹0 / week</strong>
-
         </div>
-
-
 
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-
           <button type="button" class="modal-close px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">Cancel</button>
-
           <button type="submit" id="btnSubmitNewLoan" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20">
-
             Confirm & Disburse
-
           </button>
-
         </div>
-
       </form>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: EDIT LOAN DETAILS -->
-
   <div id="modalEditLoan" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-lg rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
         <h3 class="font-extrabold text-base tracking-tight text-blue-400">Edit Loan Account (<span id="editLoanIdEcho"></span>)</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div id="editLoanBalanceWarning" class="hidden bg-rose-500/15 border border-rose-500/30 text-rose-300 p-3 rounded-2xl text-xs font-semibold">
-
         ⚠️ Insufficient Vault Cash! Additional principal exceeds current vault liquidity.
-
       </div>
-
-
 
       <form id="formEditLoan" class="space-y-3 text-xs">
-
         <input type="hidden" id="editLoanId">
-
         
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Disbursal Date</label>
-
             <input type="date" id="editLoanDate" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Schedule Frequency</label>
-
             <select id="editLoanSchedule" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="WEEKLY_7D_3D_GRACE">Weekly (7k / 7d + 3d Grace = Due Day 10)</option>
-
               <option value="DAILY">Daily Installment</option>
-
             </select>
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Borrower Full Name</label>
-
             <input type="text" id="editLoanBorrower" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Phone</label>
-
             <input type="tel" id="editLoanPhone" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Principal Disbursed (₹)</label>
-
             <input type="number" id="editLoanPrincipal" required min="500" step="100" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Total Agreed Due (₹)</label>
-
             <input type="number" id="editLoanAgreedDue" required min="500" step="100" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold">
-
           </div>
-
         </div>
-
-
 
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Disbursal Mode</label>
-
             <select id="editLoanMode" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="Cash">Physical Cash</option>
-
               <option value="UPI">UPI / GPay / PhonePe</option>
-
               <option value="Bank">Bank Transfer / IMPS</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Transaction / UTR ID</label>
-
             <input type="text" id="editLoanTxnId" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono">
-
           </div>
-
         </div>
-
-
 
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-
           <button type="button" class="modal-close px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">Cancel</button>
-
           <button type="submit" id="btnSubmitEditLoan" class="px-5 py-2 bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-blue-500/20">
-
             Save Loan Changes
-
           </button>
-
         </div>
-
       </form>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: RECORD REPAYMENT -->
-
   <div id="modalRepayment" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-md rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
         <div>
-
           <h3 class="font-extrabold text-base tracking-tight text-teal-400">Record Repayment</h3>
-
           <p class="text-[11px] text-slate-400">Quickly post loan collection with Transaction ID</p>
-
         </div>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <form id="formRepayment" class="space-y-4 text-xs">
-
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Select Borrower / Loan</label>
-
           <select id="repayLoanSelect" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 font-medium text-xs focus:border-teal-500">
-
           </select>
-
         </div>
-
-
 
         <div id="repayAccountDetails" class="hidden bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-2">
-
           <div class="flex justify-between items-center text-xs">
-
             <span class="text-slate-400">Current Balance:</span>
-
             <strong id="repayCurrentDue" class="text-rose-400 font-extrabold text-sm">₹0</strong>
-
           </div>
-
           <div class="flex justify-between items-center text-xs pt-1.5 border-t border-slate-800/80">
-
             <span class="text-slate-400">Schedule Status:</span>
-
             <span id="repayVelocityPill" class="font-bold text-xs">-</span>
-
           </div>
-
           <div class="flex justify-between items-center text-[11px] pt-1 border-t border-slate-800/80 text-amber-300">
-
             <span>Next Target Due:</span>
-
             <strong id="repayNextDueAmount" class="font-bold">₹0</strong>
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Date</label>
-
             <input type="date" id="repayDate" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Mode</label>
-
             <select id="repayMode" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-medium">
-
               <option value="Cash">Physical Cash</option>
-
               <option value="UPI">UPI / GPay / PhonePe</option>
-
               <option value="Bank">Bank Transfer</option>
-
             </select>
-
           </div>
-
         </div>
-
-
 
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Amount Paid (₹)</label>
-
             <input type="number" id="repayAmount" required min="10" step="10" placeholder="Enter amount" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-teal-400 font-black text-base focus:border-teal-500">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Transaction / UTR ID</label>
-
             <input type="text" id="repayTxnId" placeholder="Auto-ID if blank" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono text-xs focus:border-teal-500">
-
           </div>
-
         </div>
-
         <div id="repayOverpayWarning" class="hidden text-rose-400 text-[11px] font-semibold -mt-2">
-
           ⚠️ Amount exceeds remaining balance due.
-
         </div>
-
-
 
         <div class="flex items-center gap-2">
-
           <button type="button" id="btnChipDueAfterAdvance" class="flex-1 py-1.5 px-3 rounded-xl bg-teal-500/15 text-teal-300 border border-teal-500/30 text-xs font-bold hover:bg-teal-500/25">
-
             Auto-Fill Due
-
           </button>
-
           <button type="button" id="btnChipWeekly" class="py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 text-xs font-medium hover:bg-slate-700">
-
             7k (1 Week)
-
           </button>
-
           <button type="button" id="btnChipFullPay" class="py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 text-xs font-medium hover:bg-slate-700">
-
             Clear Balance
-
           </button>
-
         </div>
-
-
 
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Note (Optional)</label>
-
           <input type="text" id="repayNotes" placeholder="e.g. Paid in cash at shop" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
         </div>
-
-
 
         <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-
           <button type="button" class="modal-close px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">Cancel</button>
-
           <button type="submit" id="btnSubmitRepayment" class="px-5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl shadow-lg shadow-teal-500/20">
-
             Save Receipt
-
           </button>
-
         </div>
-
       </form>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: EDIT REPAYMENT RECEIPT -->
-
   <div id="modalEditRepayment" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-lg rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
         <h3 class="font-extrabold text-base tracking-tight text-teal-400">Edit Payment (<span id="editRepayIdEcho"></span>)</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 text-xs flex justify-between">
-
         <span class="text-slate-400">Loan Account: <strong id="editRepayLoanEcho" class="text-slate-200"></strong></span>
-
         <span class="text-slate-400">Max Allowed: <strong id="editRepayMaxEcho" class="text-emerald-400"></strong></span>
-
       </div>
-
-
 
       <form id="formEditRepayment" class="space-y-3 text-xs">
-
         <input type="hidden" id="editRepayId">
-
         
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Payment Date</label>
-
             <input type="date" id="editRepayDate" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Payment Mode</label>
-
             <select id="editRepayMode" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="Cash">Physical Cash</option>
-
               <option value="UPI">UPI / GPay / PhonePe</option>
-
               <option value="Bank">Bank Transfer / IMPS</option>
-
             </select>
-
           </div>
-
         </div>
-
-
 
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Amount Paid (₹)</label>
-
             <input type="number" id="editRepayAmount" required min="10" step="10" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-teal-400 font-bold text-sm">
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Transaction / UTR ID</label>
-
             <input type="text" id="editRepayTxnId" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono">
-
           </div>
-
         </div>
-
         <div id="editRepayOverpayWarning" class="hidden text-rose-400 text-[11px] font-semibold -mt-1">
-
           ⚠️ Amount exceeds maximum permissible due balance.
-
         </div>
-
-
 
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Notes (Optional)</label>
-
           <input type="text" id="editRepayNotes" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
         </div>
-
-
 
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-
           <button type="button" class="modal-close px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">Cancel</button>
-
           <button type="submit" id="btnSubmitEditRepayment" class="px-5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-teal-500/20">
-
             Save Payment Changes
-
           </button>
-
         </div>
-
       </form>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: DEPOSIT / WITHDRAWAL VOUCHER (ADD) -->
-
   <div id="modalVoucher" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-lg rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
         <h3 id="voucherModalTitle" class="font-extrabold text-base tracking-tight text-slate-100">Record Cash In / Out Voucher</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-
         <span class="text-slate-400">Available Vault Cash:</span>
-
         <strong id="modalVoucherVaultAvailable" class="text-emerald-400 font-bold">₹0</strong>
-
       </div>
-
       <div id="voucherBalanceWarning" class="hidden bg-rose-500/15 border border-rose-500/30 text-rose-300 p-3 rounded-2xl text-xs font-semibold">
-
         ⚠️ Insufficient Vault Cash! Withdrawal exceeds available funds.
-
       </div>
-
-
 
       <form id="formVoucher" class="space-y-3 text-xs">
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Flow Type</label>
-
             <select id="voucherFlowType" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold">
-
               <option value="INFLOW">Deposit (Cash In)</option>
-
               <option value="OUTFLOW">Withdrawal (Cash Out)</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Voucher Date</label>
-
             <input type="date" id="voucherDate" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Category</label>
-
             <select id="voucherCategory" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="Capital Injection">Capital Injection</option>
-
               <option value="Bank to Cash Contra">Bank to Cash Contra</option>
-
               <option value="Partner Drawings">Partner Drawings</option>
-
               <option value="Operating Expense">Operating Expense</option>
-
               <option value="Office Rent & Utilities">Office Rent & Utilities</option>
-
               <option value="Salary & Wages">Salary & Wages</option>
-
               <option value="Legal & Audit">Legal & Audit</option>
-
               <option value="Miscellaneous">Miscellaneous</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Amount (₹)</label>
-
             <input type="number" id="voucherAmount" required min="10" step="10" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold text-sm">
-
           </div>
-
         </div>
-
-
 
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Payment Mode</label>
-
             <select id="voucherMode" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="Cash">Physical Cash</option>
-
               <option value="UPI">UPI / GPay / PhonePe</option>
-
               <option value="Bank">Bank Transfer / IMPS</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Transaction / UTR ID</label>
-
             <input type="text" id="voucherTxnId" placeholder="Auto-ID if blank" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono">
-
           </div>
-
         </div>
 
-
-
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Counterparty / Handled By</label>
-
           <input type="text" id="voucherCounterparty" required placeholder="e.g. Owner Capital / Landlord" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
         </div>
-
-
 
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Notes & Reference</label>
-
           <input type="text" id="voucherNotes" placeholder="e.g. Operational float" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
         </div>
-
-
 
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-
           <button type="button" class="modal-close px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">Cancel</button>
-
           <button type="submit" id="btnSubmitVoucher" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20">
-
             Record Voucher
-
           </button>
-
         </div>
-
       </form>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: EDIT DEPOSIT / WITHDRAWAL VOUCHER -->
-
   <div id="modalEditVoucher" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-lg rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-
         <h3 class="font-extrabold text-base tracking-tight text-blue-400">Edit Voucher (<span id="editVoucherIdEcho"></span>)</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div id="editVoucherBalanceWarning" class="hidden bg-rose-500/15 border border-rose-500/30 text-rose-300 p-3 rounded-2xl text-xs font-semibold">
-
         ⚠️ Insufficient Vault Cash! Adjusted movement causes negative vault cash.
-
       </div>
-
-
 
       <form id="formEditVoucher" class="space-y-3 text-xs">
-
         <input type="hidden" id="editVoucherId">
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Flow Type</label>
-
             <select id="editVoucherFlowType" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold">
-
               <option value="INFLOW">Deposit (Cash In)</option>
-
               <option value="OUTFLOW">Withdrawal (Cash Out)</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Voucher Date</label>
-
             <input type="date" id="editVoucherDate" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
           </div>
-
         </div>
 
-
-
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Category</label>
-
             <select id="editVoucherCategory" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="Capital Injection">Capital Injection</option>
-
               <option value="Bank to Cash Contra">Bank to Cash Contra</option>
-
               <option value="Partner Drawings">Partner Drawings</option>
-
               <option value="Operating Expense">Operating Expense</option>
-
               <option value="Office Rent & Utilities">Office Rent & Utilities</option>
-
               <option value="Salary & Wages">Salary & Wages</option>
-
               <option value="Legal & Audit">Legal & Audit</option>
-
               <option value="Miscellaneous">Miscellaneous</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Amount (₹)</label>
-
             <input type="number" id="editVoucherAmount" required min="10" step="10" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold text-sm">
-
           </div>
-
         </div>
-
-
 
         <div class="grid grid-cols-2 gap-3">
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Payment Mode</label>
-
             <select id="editVoucherMode" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
               <option value="Cash">Physical Cash</option>
-
               <option value="UPI">UPI / GPay / PhonePe</option>
-
               <option value="Bank">Bank Transfer / IMPS</option>
-
             </select>
-
           </div>
-
           <div>
-
             <label class="block text-slate-400 font-semibold mb-1">Transaction / UTR ID</label>
-
             <input type="text" id="editVoucherTxnId" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono">
-
           </div>
-
         </div>
 
-
-
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Counterparty / Handled By</label>
-
           <input type="text" id="editVoucherCounterparty" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
         </div>
-
-
 
         <div>
-
           <label class="block text-slate-400 font-semibold mb-1">Notes & Reference</label>
-
           <input type="text" id="editVoucherNotes" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
         </div>
-
-
 
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
-
           <button type="button" class="modal-close px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">Cancel</button>
-
           <button type="submit" id="btnSubmitEditVoucher" class="px-5 py-2 bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-blue-500/20">
-
             Save Voucher Changes
-
           </button>
-
         </div>
-
       </form>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: REPAYMENT RECEIPT SLIP -->
-
   <div id="receiptModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-md rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-
         <h3 class="font-extrabold text-sm tracking-tight text-emerald-400">Payment Receipt Slip</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div id="printableReceiptArea" class="bg-white text-slate-900 p-5 rounded-2xl shadow-inner font-mono text-xs space-y-3">
-
         <div class="text-center border-b pb-2 border-slate-300">
-
           <div class="font-black text-sm tracking-widest text-emerald-800">RUPEETRACK PRO</div>
-
           <div class="text-[10px] text-slate-600">OFFICIAL REPAYMENT ACKNOWLEDGEMENT</div>
-
           <div id="receiptSlipId" class="text-[10px] font-bold text-slate-500 mt-1">REC-000</div>
-
         </div>
-
-
 
         <div class="space-y-1 text-[11px]">
-
           <div class="flex justify-between"><span>Date:</span> <strong id="receiptSlipDate">-</strong></div>
-
           <div class="flex justify-between"><span>Borrower:</span> <strong id="receiptSlipBorrower">-</strong></div>
-
           <div class="flex justify-between"><span>Loan Account:</span> <strong id="receiptSlipLoanId">-</strong></div>
-
           <div class="flex justify-between"><span>Payment Mode:</span> <strong id="receiptSlipMode">-</strong></div>
-
           <div class="flex justify-between"><span>Transaction ID:</span> <strong id="receiptSlipTxnId" class="text-slate-800">-</strong></div>
-
         </div>
-
-
 
         <div class="border-y border-dashed border-slate-300 py-2 space-y-1.5">
-
           <div class="flex justify-between text-sm">
-
             <span class="font-black text-emerald-700">Amount Received:</span>
-
             <strong id="receiptSlipAmount" class="font-black text-emerald-700">₹0</strong>
-
           </div>
-
           <div class="flex justify-between text-[11px]">
-
             <span>Total Loan Balance:</span>
-
             <strong id="receiptSlipRemaining">₹0</strong>
-
           </div>
-
           
-
           <!-- EXPLICIT CYCLE DEFICIT / ARREARS NOTICE -->
-
           <div id="receiptPendingDueRow" class="flex justify-between text-[11px] pt-1 border-t border-slate-200">
-
             <span id="receiptPendingDueLabel" class="text-rose-700 font-bold">Pending Due for Week:</span>
-
             <strong id="receiptPendingDueAmount" class="text-rose-700 font-black">₹0</strong>
-
           </div>
-
-
 
           <div class="flex justify-between text-[11px]">
-
             <span>Next Target Due Date:</span>
-
             <strong id="receiptSlipNextDate" class="text-amber-800 font-bold">-</strong>
-
           </div>
-
         </div>
-
-
 
         <div class="text-[9px] text-slate-500 text-center pt-1">
-
           Thank you for your repayment. Keep this slip for your audit records.
-
         </div>
-
       </div>
-
-
 
       <div class="flex justify-between items-center gap-2 pt-2 border-t border-slate-800">
-
         <button id="btnShareWhatsAppReceipt" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5">
-
           <span>💬</span> Send WhatsApp
-
         </button>
-
         <div class="flex gap-2">
-
           <button id="btnPrintReceipt" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs">
-
             🖨️ Print
-
           </button>
-
           <button class="modal-close px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">
-
             Close
-
           </button>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL: LOAN DISBURSAL VOUCHER -->
-
   <div id="disbursalReceiptModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-
     <div class="app-card w-full max-w-md rounded-3xl border border-slate-700 p-6 space-y-4 shadow-2xl">
-
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-
         <h3 class="font-extrabold text-sm tracking-tight text-emerald-400">Loan Sanction & Disbursal Slip</h3>
-
         <button class="modal-close text-slate-400 hover:text-white text-lg">✕</button>
-
       </div>
-
-
 
       <div id="printableDisbursalArea" class="bg-white text-slate-900 p-5 rounded-2xl shadow-inner font-mono text-xs space-y-3">
-
         <div class="text-center border-b pb-2 border-slate-300">
-
           <div class="font-black text-sm tracking-widest text-emerald-800">RUPEETRACK PRO</div>
-
           <div class="text-[10px] text-slate-600">WEEKLY LOAN DISBURSAL VOUCHER</div>
-
           <div id="disbursalSlipId" class="text-[10px] font-bold text-slate-500 mt-1">LN-000</div>
-
         </div>
-
-
 
         <div class="space-y-1 text-[11px]">
-
           <div class="flex justify-between"><span>Disbursal Date:</span> <strong id="disbursalSlipDate">-</strong></div>
-
           <div class="flex justify-between"><span>Borrower:</span> <strong id="disbursalSlipBorrower">-</strong></div>
-
           <div class="flex justify-between"><span>Phone:</span> <strong id="disbursalSlipPhone">-</strong></div>
-
           <div class="flex justify-between"><span>Mode / Txn ID:</span> <strong id="disbursalSlipTxnId">-</strong></div>
-
           <div class="flex justify-between"><span>Schedule:</span> <strong id="disbursalSlipMaturity">Weekly (3d Grace)</strong></div>
-
         </div>
-
-
 
         <div class="border-y border-dashed border-slate-300 py-2 space-y-1">
-
           <div class="flex justify-between text-[11px]">
-
             <span>Net Principal Disbursed:</span>
-
             <strong id="disbursalSlipPrincipal" class="font-black">₹0</strong>
-
           </div>
-
           <div class="flex justify-between text-sm">
-
             <span class="font-black text-emerald-700">Total Agreed Repayment:</span>
-
             <strong id="disbursalSlipAgreed" class="font-black text-emerald-700">₹0</strong>
-
           </div>
-
           <div class="flex justify-between text-[11px]">
-
             <span>Standard Weekly Installment:</span>
-
             <strong id="disbursalSlipDailyTarget">₹0 / week</strong>
-
           </div>
-
         </div>
-
-
 
         <div class="text-[9px] text-slate-500 text-center pt-1">
-
           Authorized Disbursal Voucher. Borrower agrees to the weekly collection schedule with 3 days grace.
-
         </div>
-
       </div>
-
-
 
       <div class="flex justify-between items-center gap-2 pt-2 border-t border-slate-800">
-
         <button id="btnShareWhatsAppDisbursal" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5">
-
           <span>💬</span> Send WhatsApp
-
         </button>
-
         <div class="flex gap-2">
-
           <button id="btnPrintDisbursal" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs">
-
             🖨️ Print
-
           </button>
-
           <button class="modal-close px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">
-
             Close
-
           </button>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
 
-
-
   <!-- JAVASCRIPT APPLICATION LOGIC WITH FIREBASE REALTIME CLOUD SYNC -->
-
   <script>
-
     const STORAGE_KEY = "rupeetrack_pro_state_v2";
-
     const PIN_KEY = "rupeetrack_pro_pin";
-
     const BACKUP_TIMESTAMP_KEY = "rupeetrack_pro_last_backup";
 
-
-
     // YOUR CONFIGURED FIREBASE PROJECT
-
     const firebaseConfig = {
-
       apiKey: "AIzaSyCOL88PmYx_ayft-mUtQC0kcdGbEmBJ6Ng",
-
       authDomain: "rupeetrack-709a1.firebaseapp.com",
-
       databaseURL: "https://rupeetrack-709a1-default-rtdb.firebaseio.com",
-
       projectId: "rupeetrack-709a1",
-
       storageBucket: "rupeetrack-709a1.firebasestorage.app",
-
       messagingSenderId: "1068606278913",
-
       appId: "1:1068606278913:web:f8ad1d1aa345952f779f00"
-
     };
-
-
 
     let dbRef = null;
-
     let isCloudSyncActive = false;
 
-
-
     function generateTxnId(prefix = "TXN") {
-
       const now = new Date();
-
       const ymd = now.toISOString().slice(2, 10).replace(/-/g, "");
-
       const rand = Math.floor(1000 + Math.random() * 9000);
-
       return `${prefix}-${ymd}-${rand}`;
-
     }
-
-
 
     function updateSyncStatusBadge(status, label) {
-
       const badge = document.getElementById("cloudSyncBadge");
-
       const lockBadge = document.getElementById("lockSyncStatus");
 
-
-
       const applyBadge = (el) => {
-
         if (!el) return;
-
         if (status === "SYNCED") {
-
           el.textContent = label || "☁️ Live Synced";
-
           el.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
-
         } else if (status === "SYNCING") {
-
           el.textContent = label || "🔄 Syncing...";
-
           el.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30";
-
         } else {
-
           el.textContent = label || "⚠️ Offline Mode";
-
           el.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30";
-
         }
-
       };
-
-
 
       applyBadge(badge);
-
       applyBadge(lockBadge);
-
     }
-
-
 
     try {
-
       firebase.initializeApp(firebaseConfig);
-
       const database = firebase.database();
-
       dbRef = database.ref("rupeetrack_ledger");
-
       isCloudSyncActive = true;
 
-
-
       database.ref(".info/connected").on("value", (snap) => {
-
         if (snap.val() === true) {
-
           updateSyncStatusBadge("SYNCED", "☁️ Live Synced");
-
         } else {
-
           updateSyncStatusBadge("OFFLINE", "⚠️ Offline (Cached)");
-
         }
-
       });
-
     } catch (err) {
-
       console.warn("Firebase initialization error:", err);
-
       updateSyncStatusBadge("OFFLINE", "⚠️ Local Only");
-
     }
-
-
 
     let appState = {
-
       pin: localStorage.getItem(PIN_KEY) || "1234",
-
       operatingDate: "2026-11-11",
-
       loans: [],
-
       payments: [],
-
       vouchers: []
-
     };
 
-
-
     function getMasterPin() {
-
       return appState.pin || localStorage.getItem(PIN_KEY) || "1234";
-
     }
-
-
 
     function setMasterPin(pin) {
-
       appState.pin = pin;
-
       localStorage.setItem(PIN_KEY, pin);
-
       saveState();
-
     }
-
-
 
     function sanitizePhoneForWhatsApp(phone) {
-
       if (!phone) return "";
-
       let cleaned = phone.replace(/\D/g, "").replace(/^0+/, "");
-
       if (cleaned.length === 10) cleaned = "91" + cleaned;
-
       return cleaned;
-
     }
-
-
 
     function formatCurrency(num) {
-
       return "₹" + Math.round(num || 0).toLocaleString("en-IN");
-
     }
-
-
 
     function loadInitialState() {
-
       try {
-
         const stored = localStorage.getItem(STORAGE_KEY);
-
         if (stored) {
-
           const parsed = JSON.parse(stored);
-
           if (parsed && Array.isArray(parsed.loans) && parsed.loans.length > 0) {
-
             appState = parsed;
-
             if (!appState.pin) {
-
               appState.pin = localStorage.getItem(PIN_KEY) || "1234";
-
             }
-
           }
-
         }
-
       } catch (e) {
-
         console.error("Storage parse error:", e);
-
       }
-
-
 
       if (isCloudSyncActive && dbRef) {
-
         dbRef.on("value", (snapshot) => {
-
           const cloudData = snapshot.val();
-
           if (cloudData) {
-
             const syncedPin = cloudData.pin || localStorage.getItem(PIN_KEY) || "1234";
-
             appState = {
-
               pin: syncedPin,
-
               operatingDate: cloudData.operatingDate || appState.operatingDate || "2026-11-11",
-
               loans: Array.isArray(cloudData.loans) ? cloudData.loans : [],
-
               payments: Array.isArray(cloudData.payments) ? cloudData.payments : [],
-
               vouchers: Array.isArray(cloudData.vouchers) ? cloudData.vouchers : []
-
             };
-
             localStorage.setItem(PIN_KEY, syncedPin);
-
             localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-
             const opInput = document.getElementById("operatingDateInput");
-
             if (opInput) opInput.value = appState.operatingDate;
-
             renderAll();
-
             updateSyncStatusBadge("SYNCED", "☁️ Live Synced");
-
           } else {
-
             if (!appState.loans || appState.loans.length === 0) {
-
               seedDemoData();
-
             } else {
-
               saveState();
-
             }
-
           }
-
         }, (error) => {
-
           console.error("Firebase read failed:", error);
-
           updateSyncStatusBadge("OFFLINE", "⚠️ Sync Permission Error");
-
         });
-
       } else if (!appState.loans || appState.loans.length === 0) {
-
         seedDemoData();
-
       }
-
     }
-
-
 
     function saveState() {
-
       try {
-
         localStorage.setItem(PIN_KEY, getMasterPin());
-
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-
       } catch (e) {
-
         console.error("Failed to save state to localStorage:", e);
-
       }
-
-
 
       if (isCloudSyncActive && dbRef) {
-
         updateSyncStatusBadge("SYNCING", "🔄 Saving...");
-
         dbRef.set(appState)
-
           .then(() => updateSyncStatusBadge("SYNCED", "☁️ Live Synced"))
-
           .catch((err) => {
-
             console.error("Cloud push failed:", err);
-
             updateSyncStatusBadge("OFFLINE", "⚠️ Sync Failed");
-
           });
-
       }
-
     }
-
-
 
     function seedDemoData() {
-
       const currentPin = getMasterPin();
-
       appState = {
-
         pin: currentPin,
-
         operatingDate: "2026-11-11",
-
         loans: [
-
           { id: "LN-101", txnId: "TXN-261001-1011", date: "2026-10-01", schedule: "WEEKLY_7D_3D_GRACE", borrower: "khaleb", phone: "9494923010", principal: 60000, agreedDue: 70000, mode: "Cash" },
-
           { id: "LN-102", txnId: "TXN-261010-1022", date: "2026-10-10", schedule: "WEEKLY_7D_3D_GRACE", borrower: "Anand Traders", phone: "9848012345", principal: 30000, agreedDue: 35000, mode: "UPI" },
-
           { id: "LN-103", txnId: "TXN-261020-1033", date: "2026-10-20", schedule: "WEEKLY_7D_3D_GRACE", borrower: "M. Venkatesh", phone: "9440198765", principal: 15000, agreedDue: 17500, mode: "Cash" },
-
           { id: "LN-104", txnId: "TXN-261101-1044", date: "2026-11-01", schedule: "WEEKLY_7D_3D_GRACE", borrower: "P. Lakshmi", phone: "9123456789", principal: 25000, agreedDue: 28000, mode: "Bank" },
-
           { id: "LN-105", txnId: "TXN-260701-1055", date: "2026-07-01", schedule: "WEEKLY_7D_3D_GRACE", borrower: "K. Mohan Rao", phone: "9988776655", principal: 10000, agreedDue: 12000, mode: "Cash" }
-
         ],
-
         payments: [
-
           { id: "REC-501", txnId: "TXN-261008-5011", loanId: "LN-101", date: "2026-10-08", amount: 7000, mode: "Cash", notes: "Week 1 installment" },
-
           { id: "REC-502", txnId: "TXN-261017-5022", loanId: "LN-101", date: "2026-10-17", amount: 7000, mode: "UPI", notes: "Week 2 installment" },
-
           { id: "REC-503", txnId: "TXN-261025-5033", loanId: "LN-101", date: "2026-10-25", amount: 9000, mode: "Cash", notes: "Week 3 installment + 2k advance" },
-
           { id: "REC-504", txnId: "TXN-261020-5044", loanId: "LN-102", date: "2026-10-20", amount: 7000, mode: "Cash", notes: "Week 1" },
-
           { id: "REC-505", txnId: "TXN-261102-5055", loanId: "LN-103", date: "2026-11-02", amount: 3500, mode: "Cash", notes: "Week 1" }
-
         ],
-
         vouchers: [
-
           { id: "VCH-1001", txnId: "TXN-260925-9001", type: "INFLOW", date: "2026-09-25", category: "Capital Injection", amount: 150000, mode: "Bank", counterparty: "owner", notes: "Initial float capital" },
-
           { id: "VCH-1002", txnId: "TXN-261031-9002", type: "OUTFLOW", date: "2026-10-31", category: "Operating Expense", amount: 3500, mode: "Cash", counterparty: "Office Supplies", notes: "Stationery" }
-
         ]
-
       };
-
       saveState();
-
     }
-
-
 
     function getLoanFinancials(loan) {
-
       const payments = appState.payments.filter(p => p.loanId === loan.id);
-
       const collected = payments.reduce((sum, p) => sum + p.amount, 0);
-
       const remainingDue = Math.max(0, loan.agreedDue - collected);
-
       const isSettled = remainingDue === 0;
 
-
-
       const d1 = new Date(loan.date);
-
       const d2 = new Date(appState.operatingDate);
-
       const diffTime = d2.getTime() - d1.getTime();
-
       const daysElapsed = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
 
-
-
       const dailyRate = loan.agreedDue / 100;
-
       const weeklyRate = Math.round(dailyRate * 7);
 
-
-
       let billedWeeks = 1;
-
       if (daysElapsed > 10) {
-
         billedWeeks = 1 + Math.ceil((daysElapsed - 10) / 7);
-
       }
-
-
 
       const expectedAccruedDue = Math.min(loan.agreedDue, billedWeeks * weeklyRate);
-
       const pacingDelta = collected - expectedAccruedDue;
 
-
-
       let velocityType = "ON_TRACK";
-
       let velocityLabel = "On Track";
-
       let velocityAmount = 0;
 
-
-
       if (!isSettled) {
-
         if (pacingDelta >= 500) {
-
           velocityType = "ADVANCE";
-
           velocityLabel = `In Advance (+${formatCurrency(pacingDelta)})`;
-
           velocityAmount = pacingDelta;
-
         } else if (pacingDelta <= -500) {
-
           velocityType = "ARREARS";
-
           velocityLabel = `In Arrears (-${formatCurrency(Math.abs(pacingDelta))})`;
-
           velocityAmount = Math.abs(pacingDelta);
-
         }
-
       }
-
-
 
       let operationalStatus = isSettled ? "SETTLED" : "ACTIVE";
-
       if (!isSettled) {
-
         if (daysElapsed > 120) operationalStatus = "CRITICAL";
-
         else if (daysElapsed > 100) operationalStatus = "OVERDUE";
-
       }
-
-
 
       return {
-
         collected,
-
         remainingDue,
-
         isSettled,
-
         daysElapsed,
-
         dailyRate,
-
         weeklyRate,
-
         billedWeeks,
-
         expectedAccruedDue,
-
         pacingDelta,
-
         velocityType,
-
         velocityLabel,
-
         velocityAmount,
-
         operationalStatus,
-
         paymentsCount: payments.length
-
       };
-
     }
-
-
 
     function getNetPacedDueAfterAdvance(fin) {
-
       if (fin.isSettled || fin.remainingDue <= 0) return 0;
 
-
-
       const weeklyRate = fin.weeklyRate;
-
       const expectedAccrued = fin.expectedAccruedDue;
-
       const totalPaid = fin.collected;
-
-
 
       if (totalPaid < expectedAccrued) {
-
         const arrears = expectedAccrued - totalPaid;
-
         return Math.min(fin.remainingDue, arrears);
-
       } else {
-
         const advanceCredit = totalPaid - expectedAccrued;
-
         if (advanceCredit >= weeklyRate) {
-
           return 0;
-
         } else {
-
           return Math.min(fin.remainingDue, weeklyRate - advanceCredit);
-
         }
-
       }
-
     }
 
-
-
     function getNextDueSchedule(loan, fin) {
-
       if (fin.isSettled || fin.remainingDue <= 0) {
-
         return { nextDate: "Settled", nextAmount: 0 };
-
       }
 
-
-
       const disbursal = new Date(loan.date);
-
       const weeklyRate = fin.weeklyRate;
-
       const totalPaid = fin.collected;
-
       const expectedAccrued = fin.expectedAccruedDue;
-
-
 
       const fullyPaidWeeks = Math.floor(totalPaid / weeklyRate);
 
-
-
       let targetWeekNumber = fullyPaidWeeks + 1;
-
       if (totalPaid < expectedAccrued) {
-
         targetWeekNumber = fin.billedWeeks;
-
       }
-
-
 
       let dayOffset = 10;
-
       if (targetWeekNumber > 1) {
-
         dayOffset = 10 + ((targetWeekNumber - 1) * 7);
-
       }
 
-
-
       const targetDueDate = new Date(disbursal);
-
       targetDueDate.setDate(targetDueDate.getDate() + dayOffset);
-
       const nextDateStr = targetDueDate.toISOString().split("T")[0];
-
-
 
       const netDue = getNetPacedDueAfterAdvance(fin);
 
-
-
       return {
-
         nextDate: nextDateStr,
-
         nextAmount: netDue
-
       };
-
     }
-
-
 
     function getAvailableVaultCash() {
-
       const totalDeposits = appState.vouchers
-
         .filter(v => v.type === "INFLOW")
-
         .reduce((sum, v) => sum + v.amount, 0);
-
-
 
       const totalWithdrawals = appState.vouchers
-
         .filter(v => v.type === "OUTFLOW")
-
         .reduce((sum, v) => sum + v.amount, 0);
 
-
-
       const totalDisbursed = appState.loans.reduce((sum, l) => sum + l.principal, 0);
-
       const totalRepayments = appState.payments.reduce((sum, p) => sum + p.amount, 0);
 
-
-
       return (totalDeposits + totalRepayments) - (totalWithdrawals + totalDisbursed);
-
     }
-
-
 
     function switchTab(tabId) {
-
       document.querySelectorAll("main > section").forEach(sec => sec.classList.add("hidden"));
-
       const target = document.getElementById(tabId);
-
       if (target) target.classList.remove("hidden");
 
-
-
       document.querySelectorAll(".tab-link").forEach(btn => {
-
         const matches = btn.getAttribute("data-tab") === tabId;
-
         if (matches) {
-
           btn.classList.add("text-emerald-400", "border-emerald-400");
-
           btn.classList.remove("text-slate-400", "border-transparent");
-
         } else {
-
           btn.classList.remove("text-emerald-400", "border-emerald-400");
-
           btn.classList.add("text-slate-400", "border-transparent");
-
         }
-
       });
 
-
-
       renderAll();
-
     }
 
-
-
     function renderLedger() {
-
       const tbody = document.getElementById("ledgerTableBody");
-
       if (!tbody) return;
-
       tbody.innerHTML = "";
-
-
 
       const events = [];
 
-
-
       appState.vouchers.forEach(v => {
-
         const txnTag = v.txnId ? ` • Txn: ${v.txnId}` : "";
-
         events.push({
-
           date: v.date,
-
           type: v.type === "INFLOW" ? "Voucher: Deposit" : "Voucher: Withdrawal",
-
           ref: `${v.id} • ${v.category} (${v.counterparty}) [${v.mode || 'Cash'}${txnTag}]`,
-
           inflow: v.type === "INFLOW" ? v.amount : 0,
-
           outflow: v.type === "OUTFLOW" ? v.amount : 0
-
         });
-
       });
-
-
 
       appState.loans.forEach(l => {
-
         const txnTag = l.txnId ? ` • Txn: ${l.txnId}` : "";
-
         events.push({
-
           date: l.date,
-
           type: "Loan Disbursal",
-
           ref: `${l.id} • To ${l.borrower} [${l.mode || 'Cash'}${txnTag}]`,
-
           inflow: 0,
-
           outflow: l.principal
-
         });
-
       });
-
-
 
       appState.payments.forEach(p => {
-
         const loan = appState.loans.find(l => l.id === p.loanId);
-
         const txnTag = p.txnId ? ` • Txn: ${p.txnId}` : "";
-
         events.push({
-
           date: p.date,
-
           type: "Loan Repayment",
-
           ref: `${p.id} • From ${loan ? loan.borrower : p.loanId} [${p.mode || 'Cash'}${txnTag}]`,
-
           inflow: p.amount,
-
           outflow: 0
-
         });
-
       });
-
-
 
       events.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-
-
       let running = 0;
-
       events.forEach(ev => {
-
         running += (ev.inflow - ev.outflow);
-
         ev.runningCash = running;
-
       });
 
-
-
       events.forEach(ev => {
-
         const tr = document.createElement("tr");
-
         tr.className = "hover:bg-slate-900/40 transition";
 
-
-
         tr.innerHTML = `
-
           <td class="py-3 px-4 font-mono text-[11px] text-slate-400">${ev.date}</td>
-
           <td class="py-3 px-4 font-bold text-slate-200">${ev.type}</td>
-
           <td class="py-3 px-4 text-slate-400">${ev.ref}</td>
-
           <td class="py-3 px-4 text-right font-bold text-emerald-400">${ev.inflow > 0 ? "+" + formatCurrency(ev.inflow) : "-"}</td>
-
           <td class="py-3 px-4 text-right font-bold text-rose-400">${ev.outflow > 0 ? "-" + formatCurrency(ev.outflow) : "-"}</td>
-
           <td class="py-3 px-4 text-right font-black ${ev.runningCash >= 0 ? "text-emerald-400" : "text-rose-500"}">${formatCurrency(ev.runningCash)}</td>
-
         `;
-
         tbody.appendChild(tr);
-
       });
-
     }
 
-
-
     function renderCockpit() {
-
       const vaultCash = getAvailableVaultCash();
-
       document.getElementById("kpiVaultCash").textContent = formatCurrency(vaultCash);
 
-
-
       let totalPrincipal = 0;
-
       let totalAgreed = 0;
-
       let totalCollected = 0;
-
       let totalAdvanceCredit = 0;
-
       let totalArrears = 0;
-
       let totalExpectedAccrued = 0;
-
       let activeCount = 0;
-
-
 
       const priorityLoans = [];
 
-
-
       appState.loans.forEach(loan => {
-
         const fin = getLoanFinancials(loan);
-
         if (!fin.isSettled) {
-
           activeCount++;
-
           totalPrincipal += loan.principal;
-
           totalAgreed += loan.agreedDue;
-
           totalCollected += fin.collected;
-
           totalExpectedAccrued += fin.expectedAccruedDue;
 
-
-
           if (fin.velocityType === "ADVANCE") totalAdvanceCredit += fin.velocityAmount;
-
           if (fin.velocityType === "ARREARS") {
-
             totalArrears += fin.velocityAmount;
-
             priorityLoans.push({ loan, fin });
-
           }
-
         }
-
       });
 
-
-
       const opDate = appState.operatingDate;
-
       const todayPayments = appState.payments.filter(p => p.date === opDate);
-
       const todayLoans = appState.loans.filter(l => l.date === opDate);
-
       const todayCollectedSum = todayPayments.reduce((acc, p) => acc + p.amount, 0);
-
       const todayDisbursedSum = todayLoans.reduce((acc, l) => acc + l.principal, 0);
-
       const todayNetMovement = todayCollectedSum - todayDisbursedSum;
 
-
-
       document.getElementById("cockpitTodayLabel").textContent = opDate;
-
       document.getElementById("cockpitTodayCollected").textContent = "+" + formatCurrency(todayCollectedSum);
-
       document.getElementById("cockpitTodayRepayCount").textContent = `${todayPayments.length} collection${todayPayments.length === 1 ? '' : 's'}`;
-
       document.getElementById("cockpitTodayDisbursed").textContent = todayDisbursedSum > 0 ? "-" + formatCurrency(todayDisbursedSum) : "₹0";
-
       document.getElementById("cockpitTodayDisburseCount").textContent = `${todayLoans.length} loan${todayLoans.length === 1 ? '' : 's'} issued`;
-
       
-
       const netFlowEl = document.getElementById("cockpitTodayNetFlow");
-
       netFlowEl.textContent = (todayNetMovement >= 0 ? "+" : "-") + formatCurrency(Math.abs(todayNetMovement));
-
       netFlowEl.className = todayNetMovement >= 0 ? "text-emerald-400 font-extrabold text-sm sm:text-base" : "text-rose-400 font-extrabold text-sm sm:text-base";
 
-
-
       const remainingMarketBalance = Math.max(0, totalAgreed - totalCollected);
-
       document.getElementById("cockpitTotalOutstanding").textContent = formatCurrency(remainingMarketBalance);
 
-
-
       document.getElementById("kpiActiveLoans").textContent = `${activeCount} Active Loans`;
-
       document.getElementById("kpiActivePrincipal").textContent = `Total Principal: ${formatCurrency(totalPrincipal)}`;
-
       document.getElementById("kpiAdvanceCredit").textContent = `+${formatCurrency(totalAdvanceCredit)}`;
-
       document.getElementById("kpiArrears").textContent = `-${formatCurrency(totalArrears)}`;
 
-
-
       const recPercent = totalAgreed > 0 ? Math.min(100, Math.round((totalCollected / totalAgreed) * 100)) : 0;
-
       document.getElementById("cockpitRecoveryPercent").textContent = `${recPercent}%`;
-
       document.getElementById("cockpitRecoveryBar").style.width = `${recPercent}%`;
-
       document.getElementById("cockpitCollectedSummary").textContent = `Collected: ${formatCurrency(totalCollected)}`;
-
       document.getElementById("cockpitRemainingSummary").textContent = `Balance Due: ${formatCurrency(remainingMarketBalance)}`;
-
       document.getElementById("cockpitTargetDue").textContent = formatCurrency(totalExpectedAccrued);
 
-
-
       const netDelta = totalCollected - totalExpectedAccrued;
-
       const statusEl = document.getElementById("cockpitNetStatus");
-
       if (netDelta >= 0) {
-
         statusEl.textContent = `Ahead (+${formatCurrency(netDelta)})`;
-
         statusEl.className = "font-bold text-teal-400 text-sm";
-
       } else {
-
         statusEl.textContent = `Arrears (-${formatCurrency(Math.abs(netDelta))})`;
-
         statusEl.className = "font-bold text-rose-400 text-sm";
-
       }
-
-
 
       document.getElementById("cockpitProjectedProfit").textContent = formatCurrency(Math.max(0, totalAgreed - totalPrincipal));
 
-
-
       const priorityContainer = document.getElementById("cockpitPriorityList");
-
       const priorityBadge = document.getElementById("cockpitPriorityBadge");
-
       priorityBadge.textContent = `${priorityLoans.length} Overdue`;
-
       priorityContainer.innerHTML = "";
 
-
-
       if (priorityLoans.length === 0) {
-
         priorityContainer.innerHTML = `<div class="p-4 bg-slate-900/40 rounded-2xl text-center text-slate-500 text-xs">✓ All active borrower accounts are paced on track or prepaid in advance.</div>`;
-
       } else {
-
         priorityLoans.sort((a, b) => b.fin.velocityAmount - a.fin.velocityAmount);
-
         priorityLoans.forEach(item => {
-
           const row = document.createElement("div");
-
           row.className = "p-2.5 bg-slate-900/70 rounded-2xl border border-slate-800 flex items-center justify-between";
-
           row.innerHTML = `
-
             <div>
-
               <strong class="text-slate-200 block text-xs">${item.loan.borrower}</strong>
-
               <span class="text-[10px] text-slate-500 font-mono">${item.loan.id} • Day ${item.fin.daysElapsed} (Week ${item.fin.billedWeeks})</span>
-
             </div>
-
             <div class="text-right">
-
               <span class="font-bold text-rose-400 block text-xs">-${formatCurrency(item.fin.velocityAmount)}</span>
-
               <button class="btn-quick-repay text-[10px] text-teal-400 hover:text-teal-300 font-bold underline" data-id="${item.loan.id}">+ Collect</button>
-
             </div>
-
           `;
-
           priorityContainer.appendChild(row);
-
         });
-
       }
-
     }
-
-
 
     function renderLoans() {
-
       const tbody = document.getElementById("loansTableBody");
-
       if (!tbody) return;
-
       const search = (document.getElementById("loanSearchInput")?.value || "").toLowerCase().trim();
-
       const filter = document.getElementById("loanFilterStatus")?.value || "ALL";
 
-
-
       tbody.innerHTML = "";
-
-
 
       const filtered = appState.loans.filter(loan => {
-
         const fin = getLoanFinancials(loan);
-
         let matchesFilter = true;
 
-
-
         if (filter === "ACTIVE") matchesFilter = !fin.isSettled;
-
         else if (filter === "SETTLED") matchesFilter = fin.isSettled;
-
         else if (filter === "OVERDUE") matchesFilter = fin.operationalStatus === "OVERDUE";
-
         else if (filter === "CRITICAL") matchesFilter = fin.operationalStatus === "CRITICAL";
-
         else if (filter === "ADVANCE") matchesFilter = fin.velocityType === "ADVANCE";
-
         else if (filter === "ARREARS") matchesFilter = fin.velocityType === "ARREARS";
 
-
-
         const matchesSearch = !search ||
-
           loan.id.toLowerCase().includes(search) ||
-
           (loan.txnId && loan.txnId.toLowerCase().includes(search)) ||
-
           loan.borrower.toLowerCase().includes(search) ||
-
           (loan.phone && loan.phone.includes(search));
 
-
-
         return matchesFilter && matchesSearch;
-
       });
 
-
-
       if (filtered.length === 0) {
-
         tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-500">No loan records match your query.</td></tr>`;
-
         return;
-
       }
-
-
 
       filtered.forEach(loan => {
-
         const fin = getLoanFinancials(loan);
-
         const tr = document.createElement("tr");
-
         tr.className = "hover:bg-slate-900/40 transition";
-
-
 
         let velocityBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20">On Track</span>`;
-
         if (fin.velocityType === "ADVANCE") {
-
           velocityBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30">+${formatCurrency(fin.velocityAmount)} Advance</span>`;
-
         } else if (fin.velocityType === "ARREARS") {
-
           velocityBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">-${formatCurrency(fin.velocityAmount)} Arrears</span>`;
-
         }
-
-
 
         let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300">Active</span>`;
-
         if (fin.operationalStatus === "SETTLED") {
-
           statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✓ Settled</span>`;
-
         } else if (fin.operationalStatus === "CRITICAL") {
-
           statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600/30 text-rose-300 border border-rose-500">🚨 Delinquent</span>`;
-
         } else if (fin.operationalStatus === "OVERDUE") {
-
           statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">⚠️ >100 Days</span>`;
-
         }
 
-
-
         tr.innerHTML = `
-
           <td class="py-3 px-4">
-
             <span class="font-bold text-slate-200 block">${loan.id} • <span class="text-[10px] text-slate-400 font-normal">${loan.date}</span></span>
-
             <span class="text-[10px] font-mono text-emerald-400/90 block">${loan.mode || 'Cash'}${loan.txnId ? ' • ' + loan.txnId : ''}</span>
-
           </td>
-
           <td class="py-3 px-4">
-
             <span class="font-bold text-slate-100 block">${loan.borrower}</span>
-
             <span class="text-[10px] text-slate-400">📱 ${loan.phone || "No phone"}</span>
-
           </td>
-
           <td class="py-3 px-4">
-
             <span class="font-semibold text-slate-300">Day ${fin.daysElapsed} • Wk ${fin.billedWeeks}</span>
-
             <span class="text-[10px] text-slate-500 block">7k / Wk (Day 10 Grace)</span>
-
           </td>
-
           <td class="py-3 px-4 text-right font-medium text-slate-300">${formatCurrency(loan.principal)}</td>
-
           <td class="py-3 px-4 text-right font-bold text-slate-200">${formatCurrency(loan.agreedDue)}</td>
-
           <td class="py-3 px-4 text-right font-bold text-emerald-400">${formatCurrency(fin.collected)}</td>
-
           <td class="py-3 px-4 text-right font-bold ${fin.remainingDue > 0 ? "text-rose-400" : "text-slate-500"}">${formatCurrency(fin.remainingDue)}</td>
-
           <td class="py-3 px-4 text-center">${velocityBadge}</td>
-
           <td class="py-3 px-4 text-center">${statusBadge}</td>
-
           <td class="py-3 px-4 text-center">
-
             <div class="flex items-center justify-center gap-1.5">
-
               ${!fin.isSettled ? `<button class="btn-action-pay px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[10px] font-bold" data-id="${loan.id}">Pay</button>` : ''}
-
               <button class="btn-action-edit-loan px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-[10px]" data-id="${loan.id}" title="Edit Loan">✏️</button>
-
               <button class="btn-action-slip px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px]" data-id="${loan.id}" title="Disbursal Slip">📄</button>
-
               <button class="btn-action-del-loan px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-[10px]" data-id="${loan.id}" title="Delete Loan">🗑️</button>
-
             </div>
-
           </td>
-
         `;
-
         tbody.appendChild(tr);
-
       });
-
     }
-
-
 
     function renderRepayments() {
-
       const tbody = document.getElementById("repaymentsTableBody");
-
       if (!tbody) return;
-
       const search = (document.getElementById("repaymentSearchInput")?.value || "").toLowerCase().trim();
 
-
-
       tbody.innerHTML = "";
-
-
 
       const list = [...appState.payments].reverse().filter(p => {
-
         const loan = appState.loans.find(l => l.id === p.loanId);
-
         const bName = loan ? loan.borrower.toLowerCase() : "";
-
         return !search ||
-
           p.id.toLowerCase().includes(search) ||
-
           (p.txnId && p.txnId.toLowerCase().includes(search)) ||
-
           p.loanId.toLowerCase().includes(search) ||
-
           bName.includes(search);
-
       });
-
-
 
       if (list.length === 0) {
-
         tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 text-xs">No repayment receipts found.</td></tr>`;
-
         return;
-
       }
 
-
-
       list.forEach(p => {
-
         const loan = appState.loans.find(l => l.id === p.loanId);
-
         const tr = document.createElement("tr");
-
         tr.className = "hover:bg-slate-900/40 transition";
 
-
-
         let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20">🔵 On Track</span>`;
-
         if (loan) {
-
           const fin = getLoanFinancials(loan);
-
           if (fin.velocityType === "ADVANCE") {
-
             statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30">🟢 In Advance (+${formatCurrency(fin.velocityAmount)})</span>`;
-
           } else if (fin.velocityType === "ARREARS") {
-
             statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">🚨 Arrears (-${formatCurrency(fin.velocityAmount)})</span>`;
-
           }
-
         }
 
-
-
         tr.innerHTML = `
-
           <td class="py-3 px-4">
-
             <span class="font-bold text-teal-400 block">${p.id}</span>
-
             <span class="text-[10px] text-slate-500">${p.date}</span>
-
           </td>
-
           <td class="py-3 px-4">
-
             <span class="font-bold text-slate-100 block">${loan ? loan.borrower : "Unknown"}</span>
-
             <span class="text-[10px] text-slate-400">${p.loanId}</span>
-
           </td>
-
           <td class="py-3 px-4">
-
             <span class="font-semibold text-slate-200 block">${p.mode || 'Cash'}</span>
-
             <span class="text-[10px] font-mono text-teal-300/90">${p.txnId || "No Txn ID"}</span>
-
           </td>
-
           <td class="py-3 px-4 text-right">
-
             <span class="font-black text-emerald-400 text-sm block">${formatCurrency(p.amount)}</span>
-
             ${p.notes ? `<span class="text-[10px] text-slate-400">${p.notes}</span>` : ''}
-
           </td>
-
           <td class="py-3 px-4 text-center">
-
             ${statusBadge}
-
           </td>
-
           <td class="py-3 px-4 text-center">
-
             <div class="flex items-center justify-center gap-1.5">
-
               <button class="btn-show-receipt px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px] font-semibold" data-id="${p.id}">
-
                 Slip
-
               </button>
-
               <button class="btn-edit-payment px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-[10px]" data-id="${p.id}" title="Edit Payment">
-
                 ✏️
-
               </button>
-
               <button class="btn-del-payment px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-[10px]" data-id="${p.id}" title="Delete Payment">
-
                 🗑️
-
               </button>
-
             </div>
-
           </td>
-
         `;
-
         tbody.appendChild(tr);
-
       });
-
     }
 
-
-
     function renderVouchers() {
-
       const tbody = document.getElementById("vouchersTableBody");
-
       if (!tbody) return;
-
       const filter = document.getElementById("voucherFilterType")?.value || "ALL";
-
       const search = (document.getElementById("voucherSearchInput")?.value || "").toLowerCase().trim();
-
-
 
       tbody.innerHTML = "";
 
-
-
       let inTotal = 0;
-
       let outTotal = 0;
 
-
-
       appState.vouchers.forEach(v => {
-
         if (v.type === "INFLOW") inTotal += v.amount;
-
         if (v.type === "OUTFLOW") outTotal += v.amount;
-
       });
-
-
 
       document.getElementById("kpiTotalDeposits").textContent = formatCurrency(inTotal);
-
       document.getElementById("kpiTotalWithdrawals").textContent = formatCurrency(outTotal);
-
       document.getElementById("kpiNetVoucherMovement").textContent = formatCurrency(inTotal - outTotal);
 
-
-
       const filtered = [...appState.vouchers].reverse().filter(v => {
-
         const matchesType = filter === "ALL" || v.type === filter;
-
         const matchesSearch = !search ||
-
           v.id.toLowerCase().includes(search) ||
-
           (v.txnId && v.txnId.toLowerCase().includes(search)) ||
-
           (v.counterparty && v.counterparty.toLowerCase().includes(search)) ||
-
           (v.category && v.category.toLowerCase().includes(search));
-
         return matchesType && matchesSearch;
-
       });
-
-
 
       if (filtered.length === 0) {
-
         tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No cash vouchers recorded.</td></tr>`;
-
         return;
-
       }
 
-
-
       filtered.forEach(v => {
-
         const tr = document.createElement("tr");
-
         tr.className = "hover:bg-slate-900/40 transition";
-
         const isIn = v.type === "INFLOW";
 
-
-
         tr.innerHTML = `
-
           <td class="py-3 px-4">
-
             <span class="font-bold text-slate-200 block">${v.id}</span>
-
             <span class="text-[10px] text-slate-500">${v.date}</span>
-
           </td>
-
           <td class="py-3 px-4">
-
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isIn ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30"}">
-
               ${isIn ? "Deposit (Cash In)" : "Withdrawal (Cash Out)"}
-
             </span>
-
           </td>
-
           <td class="py-3 px-4">
-
             <span class="text-slate-300 font-semibold block">${v.category}</span>
-
             <span class="text-[10px] text-slate-400">${v.mode || 'Cash'}</span>
-
           </td>
-
           <td class="py-3 px-4 text-slate-400">
-
             <span class="text-slate-200 block font-medium">${v.counterparty || "-"}</span>
-
             <span class="text-[10px] font-mono text-emerald-400/90 block">${v.txnId ? 'Txn: ' + v.txnId : ''}${v.notes ? (v.txnId ? ' • ' : '') + v.notes : ''}</span>
-
           </td>
-
           <td class="py-3 px-4 text-right font-black ${isIn ? "text-emerald-400" : "text-rose-400"}">
-
             ${isIn ? "+" : "-"}${formatCurrency(v.amount)}
-
           </td>
-
           <td class="py-3 px-4 text-center">
-
             <div class="flex items-center justify-center gap-1.5">
-
               <button class="btn-edit-voucher px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-[10px]" data-id="${v.id}" title="Edit Voucher">
-
                 ✏️
-
               </button>
-
               <button class="btn-del-voucher px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-[10px]" data-id="${v.id}" title="Delete Voucher">
-
                 🗑️
-
               </button>
-
             </div>
-
           </td>
-
         `;
-
         tbody.appendChild(tr);
-
       });
-
     }
 
-
-
     function renderBorrowers() {
-
       const grid = document.getElementById("borrowersGrid");
-
       if (!grid) return;
-
       const search = (document.getElementById("borrowerSearchInput")?.value || "").toLowerCase().trim();
-
       const filter = document.getElementById("borrowerStatusFilter")?.value || "ALL";
-
-
 
       grid.innerHTML = "";
 
-
-
       const bMap = {};
-
       appState.loans.forEach(loan => {
-
         const name = loan.borrower || "Unknown";
-
         if (!bMap[name]) {
-
           bMap[name] = { name, phone: loan.phone, loans: [], totalBorrowed: 0, totalAgreed: 0, totalPaid: 0, netVelocity: 0 };
-
         }
-
         const fin = getLoanFinancials(loan);
-
         bMap[name].loans.push({ loan, fin });
-
         bMap[name].totalBorrowed += loan.principal;
-
         bMap[name].totalAgreed += loan.agreedDue;
-
         bMap[name].totalPaid += fin.collected;
-
         bMap[name].netVelocity += fin.pacingDelta;
-
       });
-
-
 
       const list = Object.values(bMap).filter(b => {
-
         const remaining = Math.max(0, b.totalAgreed - b.totalPaid);
-
         let tag = "ON_TRACK";
-
         if (remaining === 0) tag = "SETTLED";
-
         else if (b.netVelocity >= 500) tag = "ADVANCE";
-
         else if (b.netVelocity <= -500) tag = "ARREARS";
 
-
-
         const matchesFilter = filter === "ALL" || filter === tag;
-
         const matchesSearch = !search ||
-
           b.name.toLowerCase().includes(search) ||
-
           (b.phone && b.phone.includes(search));
 
-
-
         return matchesFilter && matchesSearch;
-
       });
-
-
 
       document.getElementById("borrowerCountBadge").textContent = `Showing: ${list.length} Borrower${list.length === 1 ? "" : "s"}`;
 
-
-
       if (list.length === 0) {
-
         grid.innerHTML = `<div class="col-span-full app-card p-8 rounded-3xl border text-center text-slate-500 text-xs">No borrowers found.</div>`;
-
         return;
-
       }
-
-
 
       list.forEach(b => {
-
         const rem = Math.max(0, b.totalAgreed - b.totalPaid);
-
         let badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20">On Track</span>`;
-
         if (rem === 0) {
-
           badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✓ Settled</span>`;
-
         } else if (b.netVelocity >= 500) {
-
           badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30">🟢 In Advance (+${formatCurrency(b.netVelocity)})</span>`;
-
         } else if (b.netVelocity <= -500) {
-
           badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">🚨 In Arrears (-${formatCurrency(Math.abs(b.netVelocity))})</span>`;
-
         }
 
-
-
         const card = document.createElement("div");
-
         card.className = "app-card p-5 rounded-3xl border shadow-lg flex flex-col justify-between";
-
         card.innerHTML = `
-
           <div>
-
             <div class="flex items-start justify-between gap-2">
-
               <div>
-
                 <h3 class="font-extrabold text-sm text-slate-100 tracking-tight">${b.name}</h3>
-
                 <p class="text-xs text-slate-400 mt-0.5">📱 ${b.phone || "No phone"}</p>
-
               </div>
-
               ${badge}
-
             </div>
-
             <div class="mt-4 grid grid-cols-2 gap-2 text-xs bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-
               <div><span class="text-slate-400 text-[10px] block">Principal Borrowed</span><strong>${formatCurrency(b.totalBorrowed)}</strong></div>
-
               <div><span class="text-slate-400 text-[10px] block">Total Repaid</span><strong class="text-emerald-400">${formatCurrency(b.totalPaid)}</strong></div>
-
               <div class="col-span-2 pt-2 border-t border-slate-800 flex justify-between font-bold">
-
                 <span class="text-slate-400">Balance Due:</span>
-
                 <span class="${rem > 0 ? "text-rose-400" : "text-slate-500"}">${formatCurrency(rem)}</span>
-
               </div>
-
             </div>
-
           </div>
-
           <div class="mt-4 pt-3 border-t border-slate-800 text-xs flex justify-between items-center text-slate-400">
-
             <span>${b.loans.length} Loan Account${b.loans.length === 1 ? "" : "s"}</span>
-
             ${b.phone ? `<a href="https://wa.me/${sanitizePhoneForWhatsApp(b.phone)}" target="_blank" class="text-emerald-400 hover:underline">💬 WhatsApp</a>` : ''}
-
           </div>
-
         `;
-
         grid.appendChild(card);
-
       });
-
     }
-
-
 
     function renderAll() {
-
       renderCockpit();
-
       renderLoans();
-
       renderRepayments();
-
       renderVouchers();
-
       renderLedger();
-
       renderBorrowers();
-
       checkBackupReminder();
-
     }
-
-
 
     function checkBackupReminder() {
-
       const last = localStorage.getItem(BACKUP_TIMESTAMP_KEY);
-
       const banner = document.getElementById("backupReminderBanner");
-
       if (!banner) return;
-
       if (!last) {
-
         banner.classList.remove("hidden");
-
         return;
-
       }
-
       const daysSince = (new Date().getTime() - new Date(last).getTime()) / (1000 * 60 * 60 * 24);
-
       if (daysSince > 7) {
-
         banner.classList.remove("hidden");
-
       } else {
-
         banner.classList.add("hidden");
-
       }
-
     }
 
-
-
     function openRepaymentReceipt(recId) {
-
       const p = appState.payments.find(item => item.id === recId);
-
       if (!p) return;
-
       const loan = appState.loans.find(l => l.id === p.loanId);
-
       const fin = loan ? getLoanFinancials(loan) : { remainingDue: 0, velocityLabel: "-", billedWeeks: 1, weeklyRate: 7000 };
-
       const nextSched = loan ? getNextDueSchedule(loan, fin) : { nextDate: "-", nextAmount: 0 };
 
-
-
       document.getElementById("receiptSlipId").textContent = p.id;
-
       document.getElementById("receiptSlipDate").textContent = p.date;
-
       document.getElementById("receiptSlipBorrower").textContent = loan ? loan.borrower : "Unknown";
-
       document.getElementById("receiptSlipLoanId").textContent = p.loanId;
-
       document.getElementById("receiptSlipMode").textContent = p.mode || "Cash";
-
       document.getElementById("receiptSlipTxnId").textContent = p.txnId || "N/A";
-
       document.getElementById("receiptSlipAmount").textContent = formatCurrency(p.amount);
-
       document.getElementById("receiptSlipRemaining").textContent = formatCurrency(fin.remainingDue);
-
       document.getElementById("receiptSlipNextDate").textContent = nextSched.nextDate;
 
-
-
       const pendingRow = document.getElementById("receiptPendingDueRow");
-
       const pendingLabel = document.getElementById("receiptPendingDueLabel");
-
       const pendingAmtEl = document.getElementById("receiptPendingDueAmount");
-
-
 
       let pendingTextForSlip = "";
 
-
-
       if (fin.velocityType === "ARREARS") {
-
         pendingRow.classList.remove("hidden");
-
         pendingLabel.textContent = `Pending Due for Week ${fin.billedWeeks}:`;
-
         pendingLabel.className = "text-rose-700 font-bold";
-
         pendingAmtEl.textContent = formatCurrency(fin.velocityAmount);
-
         pendingAmtEl.className = "text-rose-700 font-black";
-
         pendingTextForSlip = `Pending Due for Week ${fin.billedWeeks}: INR ${fin.velocityAmount.toLocaleString("en-IN")}\n`;
-
       } else if (fin.velocityType === "ADVANCE") {
-
         pendingRow.classList.remove("hidden");
-
         pendingLabel.textContent = `Advance Credit on Account:`;
-
         pendingLabel.className = "text-teal-700 font-bold";
-
         pendingAmtEl.textContent = `+${formatCurrency(fin.velocityAmount)}`;
-
         pendingAmtEl.className = "text-teal-700 font-black";
-
         pendingTextForSlip = `Advance Credit: +INR ${fin.velocityAmount.toLocaleString("en-IN")}\n`;
-
       } else {
-
         pendingRow.classList.add("hidden");
-
       }
-
-
 
       const waBtn = document.getElementById("btnShareWhatsAppReceipt");
-
       if (waBtn) {
-
         const phone = sanitizePhoneForWhatsApp(loan?.phone);
-
         const text = encodeURIComponent(
-
           `*RUPEETRACK PRO - Payment Receipt*\n` +
-
           `-------------------------------\n` +
-
           `Receipt No: ${p.id}\n` +
-
           `Transaction ID: ${p.txnId || "N/A"}\n` +
-
           `Loan Account: ${p.loanId}\n` +
-
           `Borrower: ${loan ? loan.borrower : "Borrower"}\n` +
-
           `Date: ${p.date} (${p.mode || "Cash"})\n` +
-
           `Amount Received: INR ${p.amount.toLocaleString("en-IN")}\n` +
-
           `Total Loan Balance: INR ${fin.remainingDue.toLocaleString("en-IN")}\n` +
-
           (pendingTextForSlip ? pendingTextForSlip : "") +
-
           `Next Due Date: ${nextSched.nextDate}\n` +
-
           `Next Due Amount: INR ${nextSched.nextAmount.toLocaleString("en-IN")}\n` +
-
           `-------------------------------\n` +
-
           `Thank you for your repayment!`
-
         );
-
         waBtn.onclick = () => window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
-
       }
-
-
 
       document.getElementById("receiptModal").classList.remove("hidden");
-
       document.getElementById("receiptModal").classList.add("flex");
-
     }
-
-
 
     function openDisbursalVoucher(loanId) {
-
       const loan = appState.loans.find(l => l.id === loanId);
-
       if (!loan) return;
 
-
-
       const fin = getLoanFinancials(loan);
-
-
 
       document.getElementById("disbursalSlipId").textContent = loan.id;
-
       document.getElementById("disbursalSlipDate").textContent = loan.date;
-
       document.getElementById("disbursalSlipBorrower").textContent = loan.borrower;
-
       document.getElementById("disbursalSlipPhone").textContent = loan.phone || "N/A";
-
       document.getElementById("disbursalSlipTxnId").textContent = `${loan.mode || "Cash"} • ${loan.txnId || "N/A"}`;
-
       document.getElementById("disbursalSlipPrincipal").textContent = formatCurrency(loan.principal);
-
       document.getElementById("disbursalSlipAgreed").textContent = formatCurrency(loan.agreedDue);
-
       document.getElementById("disbursalSlipDailyTarget").textContent = `${formatCurrency(fin.weeklyRate)} / week (7k)`;
 
-
-
       const waBtn = document.getElementById("btnShareWhatsAppDisbursal");
-
       if (waBtn) {
-
         const phone = sanitizePhoneForWhatsApp(loan.phone);
-
         const text = encodeURIComponent(
-
           `*RUPEETRACK PRO - Loan Sanction Voucher*\n` +
-
           `-------------------------------\n` +
-
           `Loan ID: ${loan.id}\n` +
-
           `Transaction ID: ${loan.txnId || "N/A"}\n` +
-
           `Borrower: ${loan.borrower}\n` +
-
           `Disbursal Date: ${loan.date} (${loan.mode || "Cash"})\n` +
-
           `Principal Disbursed: INR ${loan.principal.toLocaleString("en-IN")}\n` +
-
           `Total Agreed Repayment: INR ${loan.agreedDue.toLocaleString("en-IN")}\n` +
-
           `Weekly Target: INR ${fin.weeklyRate.toLocaleString("en-IN")} / week (Due Day 10 with 3d Grace)\n` +
-
           `-------------------------------\n` +
-
           `Please adhere to your weekly collection schedule.`
-
         );
-
         waBtn.onclick = () => window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
-
       }
-
-
 
       document.getElementById("disbursalReceiptModal").classList.remove("hidden");
-
       document.getElementById("disbursalReceiptModal").classList.add("flex");
-
     }
 
-
-
     function updateLiveRepaymentPreview() {
-
       const loanId = document.getElementById("repayLoanSelect").value;
-
       const loan = appState.loans.find(l => l.id === loanId);
-
       const details = document.getElementById("repayAccountDetails");
-
       const warn = document.getElementById("repayOverpayWarning");
-
       const btn = document.getElementById("btnSubmitRepayment");
 
-
-
       if (!loan) {
-
         details.classList.add("hidden");
-
         return;
-
       }
-
-
 
       const fin = getLoanFinancials(loan);
-
       const enteredAmount = parseFloat(document.getElementById("repayAmount").value) || 0;
-
       const netDueToday = getNetPacedDueAfterAdvance(fin);
 
-
-
       document.getElementById("repayCurrentDue").textContent = formatCurrency(fin.remainingDue);
-
       document.getElementById("repayNextDueAmount").textContent = formatCurrency(netDueToday);
 
-
-
       const velocityPill = document.getElementById("repayVelocityPill");
-
       if (fin.velocityType === "ADVANCE") {
-
         velocityPill.textContent = `🟢 In Advance (+${formatCurrency(fin.velocityAmount)})`;
-
         velocityPill.className = "font-bold text-teal-300";
-
       } else if (fin.velocityType === "ARREARS") {
-
         velocityPill.textContent = `🚨 In Arrears (-${formatCurrency(fin.velocityAmount)})`;
-
         velocityPill.className = "font-bold text-rose-400";
-
       } else {
-
         velocityPill.textContent = "🔵 On Track";
-
         velocityPill.className = "font-bold text-blue-300";
-
       }
-
-
 
       details.classList.remove("hidden");
 
-
-
       if (enteredAmount > fin.remainingDue) {
-
         warn.classList.remove("hidden");
-
         btn.disabled = true;
-
       } else {
-
         warn.classList.add("hidden");
-
         btn.disabled = false;
-
       }
-
     }
-
-
 
     function openEditLoanModal(loanId) {
-
       const loan = appState.loans.find(l => l.id === loanId);
-
       if (!loan) return;
 
-
-
       document.getElementById("editLoanId").value = loan.id;
-
       document.getElementById("editLoanIdEcho").textContent = loan.id;
-
       document.getElementById("editLoanDate").value = loan.date;
-
       document.getElementById("editLoanSchedule").value = loan.schedule || "WEEKLY_7D_3D_GRACE";
-
       document.getElementById("editLoanBorrower").value = loan.borrower;
-
       document.getElementById("editLoanPhone").value = loan.phone || "";
-
       document.getElementById("editLoanPrincipal").value = loan.principal;
-
       document.getElementById("editLoanAgreedDue").value = loan.agreedDue;
-
       document.getElementById("editLoanMode").value = loan.mode || "Cash";
-
       document.getElementById("editLoanTxnId").value = loan.txnId || "";
-
       document.getElementById("editLoanBalanceWarning").classList.add("hidden");
-
       document.getElementById("btnSubmitEditLoan").disabled = false;
 
-
-
       document.getElementById("modalEditLoan").classList.remove("hidden");
-
       document.getElementById("modalEditLoan").classList.add("flex");
-
     }
 
-
-
     function openEditRepaymentModal(recId) {
-
       const p = appState.payments.find(item => item.id === recId);
-
       if (!p) return;
-
       const loan = appState.loans.find(l => l.id === p.loanId);
 
-
-
       const otherPayments = appState.payments
-
         .filter(item => item.loanId === p.loanId && item.id !== p.id)
-
         .reduce((sum, item) => sum + item.amount, 0);
-
-
 
       const maxAllowed = loan ? (loan.agreedDue - otherPayments) : p.amount;
 
-
-
       document.getElementById("editRepayId").value = p.id;
-
       document.getElementById("editRepayIdEcho").textContent = p.id;
-
       document.getElementById("editRepayLoanEcho").textContent = p.loanId;
-
       document.getElementById("editRepayMaxEcho").textContent = formatCurrency(maxAllowed);
-
       document.getElementById("editRepayDate").value = p.date;
-
       document.getElementById("editRepayMode").value = p.mode || "Cash";
-
       document.getElementById("editRepayAmount").value = p.amount;
-
       document.getElementById("editRepayAmount").max = maxAllowed;
-
       document.getElementById("editRepayTxnId").value = p.txnId || "";
-
       document.getElementById("editRepayNotes").value = p.notes || "";
-
       document.getElementById("editRepayOverpayWarning").classList.add("hidden");
-
       document.getElementById("btnSubmitEditRepayment").disabled = false;
 
-
-
       document.getElementById("modalEditRepayment").classList.remove("hidden");
-
       document.getElementById("modalEditRepayment").classList.add("flex");
-
     }
-
-
 
     function openEditVoucherModal(vchId) {
-
       const v = appState.vouchers.find(item => item.id === vchId);
-
       if (!v) return;
 
-
-
       document.getElementById("editVoucherId").value = v.id;
-
       document.getElementById("editVoucherIdEcho").textContent = v.id;
-
       document.getElementById("editVoucherFlowType").value = v.type;
-
       document.getElementById("editVoucherDate").value = v.date;
-
       document.getElementById("editVoucherCategory").value = v.category;
-
       document.getElementById("editVoucherAmount").value = v.amount;
-
       document.getElementById("editVoucherMode").value = v.mode || "Cash";
-
       document.getElementById("editVoucherTxnId").value = v.txnId || "";
-
       document.getElementById("editVoucherCounterparty").value = v.counterparty || "";
-
       document.getElementById("editVoucherNotes").value = v.notes || "";
-
       document.getElementById("editVoucherBalanceWarning").classList.add("hidden");
-
       document.getElementById("btnSubmitEditVoucher").disabled = false;
 
-
-
       document.getElementById("modalEditVoucher").classList.remove("hidden");
-
       document.getElementById("modalEditVoucher").classList.add("flex");
-
     }
 
-
-
     document.addEventListener("DOMContentLoaded", () => {
-
       loadInitialState();
 
-
-
       const lockScreen = document.getElementById("lockScreen");
-
       const appContainer = document.getElementById("appContainer");
-
       const formPasscode = document.getElementById("formPasscode");
 
-
-
       formPasscode.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const input = document.getElementById("passcodeInput").value;
-
         if (input === getMasterPin()) {
-
           lockScreen.classList.add("hidden");
-
           appContainer.classList.remove("hidden");
-
           renderAll();
-
         } else {
-
           alert("Incorrect master passcode!");
-
           document.getElementById("passcodeInput").value = "";
-
           document.getElementById("passcodeInput").focus();
-
         }
-
       });
-
-
 
       document.getElementById("btnLockApp")?.addEventListener("click", () => {
-
         appContainer.classList.add("hidden");
-
         lockScreen.classList.remove("hidden");
-
         document.getElementById("passcodeInput").value = "";
-
         document.getElementById("passcodeInput").focus();
-
       });
-
-
 
       document.getElementById("formChangePin")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const newPin = document.getElementById("newPinInput").value.trim();
-
         if (newPin.length < 4) {
-
           alert("Passcode must be at least 4 digits.");
-
           return;
-
         }
-
         setMasterPin(newPin);
-
         alert("Master PIN updated and synced to Firebase Cloud!");
-
         document.getElementById("newPinInput").value = "";
-
       });
-
-
 
       const opInput = document.getElementById("operatingDateInput");
-
       opInput.value = appState.operatingDate;
-
       opInput.addEventListener("change", (e) => {
-
         appState.operatingDate = e.target.value;
-
         saveState();
-
         renderAll();
-
       });
-
-
 
       document.querySelectorAll(".tab-link").forEach(btn => {
-
         btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
-
       });
-
-
 
       document.getElementById("btnQuickCollectTrigger")?.addEventListener("click", () => openRepayModal());
-
       document.getElementById("btnQuickDisburseTrigger")?.addEventListener("click", () => openLoanModal());
-
       document.getElementById("btnViewAllArrears")?.addEventListener("click", () => {
-
         switchTab("tabLoans");
-
         const filterSelect = document.getElementById("loanFilterStatus");
-
         if (filterSelect) {
-
           filterSelect.value = "ARREARS";
-
           renderLoans();
-
         }
-
       });
-
-
 
       document.querySelectorAll(".modal-close").forEach(btn => {
-
         btn.addEventListener("click", () => {
-
           document.querySelectorAll("[id^='modal'], [id$='Modal']").forEach(m => {
-
             m.classList.add("hidden");
-
             m.classList.remove("flex");
-
           });
-
         });
-
       });
-
-
 
       const doBackup = () => {
-
         const blob = new Blob([JSON.stringify(appState, null, 2)], { type: "application/json" });
-
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement("a");
-
         a.href = url;
-
         a.download = `RupeeTrack_Backup_${appState.operatingDate}.json`;
-
         a.click();
-
         URL.revokeObjectURL(url);
-
         localStorage.setItem(BACKUP_TIMESTAMP_KEY, new Date().toISOString());
-
         checkBackupReminder();
-
       };
-
       document.getElementById("btnExportJson")?.addEventListener("click", doBackup);
-
       document.getElementById("btnQuickBackup")?.addEventListener("click", doBackup);
 
-
-
       document.getElementById("importJsonInput")?.addEventListener("change", (e) => {
-
         const file = e.target.files[0];
-
         if (!file) return;
-
         const reader = new FileReader();
-
         reader.onload = (event) => {
-
           try {
-
             const data = JSON.parse(event.target.result);
-
             if (data && Array.isArray(data.loans)) {
-
               if (!data.pin) data.pin = getMasterPin();
-
               appState = data;
-
               saveState();
-
               renderAll();
-
               alert("Data restored and synced to Firebase Cloud!");
-
             } else {
-
               alert("Invalid JSON format.");
-
             }
-
           } catch (err) {
-
             alert("Error parsing JSON file.");
-
           }
-
         };
-
         reader.readAsText(file);
-
       });
-
-
 
       document.getElementById("btnExportCsv")?.addEventListener("click", () => {
-
         let csv = "Loan ID,Txn ID,Date,Borrower,Phone,Mode,Principal,Agreed Due,Collected,Remaining,Schedule,Status\n";
-
         appState.loans.forEach(l => {
-
           const fin = getLoanFinancials(l);
-
           csv += `"${l.id}","${l.txnId || ''}","${l.date}","${l.borrower}","${l.phone || ''}","${l.mode || 'Cash'}",${l.principal},${l.agreedDue},${fin.collected},${fin.remainingDue},"${l.schedule || 'WEEKLY'}","${fin.operationalStatus}"\n`;
-
         });
-
         const blob = new Blob([csv], { type: "text/csv" });
-
         const a = document.createElement("a");
-
         a.href = URL.createObjectURL(blob);
-
         a.download = `RupeeTrack_Loans_${appState.operatingDate}.csv`;
-
         a.click();
-
       });
-
-
 
       document.getElementById("btnSeedDemo")?.addEventListener("click", () => {
-
         if (confirm("Restore sample demo records? Current cloud & local records will be replaced.")) {
-
           seedDemoData();
-
           renderAll();
-
         }
-
       });
-
       document.getElementById("btnClearStorage")?.addEventListener("click", () => {
-
         if (confirm("Permanently wipe all cloud & local records? Make sure to download a backup first.")) {
-
           appState = { pin: getMasterPin(), operatingDate: new Date().toISOString().split("T")[0], loans: [], payments: [], vouchers: [] };
-
           saveState();
-
           renderAll();
-
         }
-
       });
-
-
 
       const openLoanModal = () => {
-
         const avail = getAvailableVaultCash();
-
         document.getElementById("modalNewLoanVaultAvailable").textContent = formatCurrency(avail);
-
         document.getElementById("newLoanDate").value = appState.operatingDate;
-
         document.getElementById("newLoanPrincipal").value = "";
-
         document.getElementById("newLoanAgreedDue").value = "";
-
         document.getElementById("newLoanBorrower").value = "";
-
         document.getElementById("newLoanPhone").value = "";
-
         document.getElementById("newLoanMode").value = "Cash";
-
         document.getElementById("newLoanTxnId").value = generateTxnId("DIS");
-
         document.getElementById("newLoanBalanceWarning").classList.add("hidden");
-
         document.getElementById("btnSubmitNewLoan").disabled = false;
 
-
-
         document.getElementById("modalNewLoan").classList.remove("hidden");
-
         document.getElementById("modalNewLoan").classList.add("flex");
-
       };
-
-
 
       document.getElementById("btnOpenNewLoan")?.addEventListener("click", openLoanModal);
-
       document.getElementById("btnLoansDisburseTrigger")?.addEventListener("click", openLoanModal);
 
-
-
       document.getElementById("newLoanPrincipal")?.addEventListener("input", (e) => {
-
         const val = parseFloat(e.target.value) || 0;
-
         const avail = getAvailableVaultCash();
-
         const warn = document.getElementById("newLoanBalanceWarning");
-
         const btn = document.getElementById("btnSubmitNewLoan");
 
-
-
         if (val > avail) {
-
           warn.classList.remove("hidden");
-
           btn.disabled = true;
-
         } else {
-
           warn.classList.add("hidden");
-
           btn.disabled = false;
-
         }
-
-
 
         const agreed = parseFloat(document.getElementById("newLoanAgreedDue").value) || 0;
-
         if (agreed > 0) {
-
           const wk = Math.round((agreed / 100) * 7);
-
           document.getElementById("newLoanInstallmentTarget").textContent = `${formatCurrency(wk)} / week (7k)`;
-
         }
-
       });
-
-
 
       document.getElementById("newLoanAgreedDue")?.addEventListener("input", (e) => {
-
         const agreed = parseFloat(e.target.value) || 0;
-
         const wk = Math.round((agreed / 100) * 7);
-
         document.getElementById("newLoanInstallmentTarget").textContent = `${formatCurrency(wk)} / week (7k)`;
-
       });
-
-
 
       document.getElementById("formNewLoan")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const principal = parseFloat(document.getElementById("newLoanPrincipal").value);
-
         const agreedDue = parseFloat(document.getElementById("newLoanAgreedDue").value);
-
         const avail = getAvailableVaultCash();
-
-
 
         if (principal > avail) {
-
           alert(`Cannot disburse loan. Principal (${formatCurrency(principal)}) exceeds available vault liquidity (${formatCurrency(avail)}).`);
-
           return;
-
         }
-
-
 
         const newId = "LN-" + (100 + appState.loans.length + 1);
-
         const rawTxn = document.getElementById("newLoanTxnId").value.trim();
-
         const loan = {
-
           id: newId,
-
           txnId: rawTxn || generateTxnId("DIS"),
-
           date: document.getElementById("newLoanDate").value,
-
           schedule: document.getElementById("newLoanScheduleType").value,
-
           borrower: document.getElementById("newLoanBorrower").value.trim(),
-
           phone: document.getElementById("newLoanPhone").value.trim(),
-
           mode: document.getElementById("newLoanMode").value,
-
           principal,
-
           agreedDue
-
         };
 
-
-
         appState.loans.push(loan);
-
         saveState();
-
-
 
         document.getElementById("modalNewLoan").classList.add("hidden");
-
         document.getElementById("modalNewLoan").classList.remove("flex");
 
-
-
         renderAll();
-
         openDisbursalVoucher(newId);
-
       });
-
-
 
       document.getElementById("editLoanPrincipal")?.addEventListener("input", (e) => {
-
         const loanId = document.getElementById("editLoanId").value;
-
         const currentLoan = appState.loans.find(l => l.id === loanId);
-
         const newPrincipal = parseFloat(e.target.value) || 0;
-
         const diff = newPrincipal - (currentLoan ? currentLoan.principal : 0);
-
         const avail = getAvailableVaultCash();
-
-
 
         const warn = document.getElementById("editLoanBalanceWarning");
-
         const btn = document.getElementById("btnSubmitEditLoan");
 
-
-
         if (diff > avail) {
-
           warn.classList.remove("hidden");
-
           btn.disabled = true;
-
         } else {
-
           warn.classList.add("hidden");
-
           btn.disabled = false;
-
         }
-
       });
-
-
 
       document.getElementById("formEditLoan")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const loanId = document.getElementById("editLoanId").value;
-
         const loan = appState.loans.find(l => l.id === loanId);
-
         if (!loan) return;
 
-
-
         const newPrincipal = parseFloat(document.getElementById("editLoanPrincipal").value);
-
         const diff = newPrincipal - loan.principal;
-
         const avail = getAvailableVaultCash();
 
-
-
         if (diff > avail) {
-
           alert(`Cannot update loan. Additional principal of ${formatCurrency(diff)} exceeds available vault cash (${formatCurrency(avail)}).`);
-
           return;
-
         }
-
-
 
         loan.date = document.getElementById("editLoanDate").value;
-
         loan.schedule = document.getElementById("editLoanSchedule").value;
-
         loan.borrower = document.getElementById("editLoanBorrower").value.trim();
-
         loan.phone = document.getElementById("editLoanPhone").value.trim();
-
         loan.principal = newPrincipal;
-
         loan.agreedDue = parseFloat(document.getElementById("editLoanAgreedDue").value);
-
         loan.mode = document.getElementById("editLoanMode").value;
-
         loan.txnId = document.getElementById("editLoanTxnId").value.trim() || loan.txnId || generateTxnId("DIS");
 
-
-
         saveState();
-
         document.getElementById("modalEditLoan").classList.add("hidden");
-
         document.getElementById("modalEditLoan").classList.remove("flex");
-
         renderAll();
-
       });
-
-
 
       const openRepayModal = (preselectedLoanId = null) => {
-
         const select = document.getElementById("repayLoanSelect");
-
         select.innerHTML = `<option value="">-- Choose Borrower Account --</option>`;
 
-
-
         appState.loans.filter(l => !getLoanFinancials(l).isSettled).forEach(l => {
-
           const fin = getLoanFinancials(l);
-
           select.innerHTML += `<option value="${l.id}">${l.borrower} (${l.id} • Bal: ${formatCurrency(fin.remainingDue)})</option>`;
-
         });
 
-
-
         document.getElementById("repayDate").value = appState.operatingDate;
-
         document.getElementById("repayAmount").value = "";
-
         document.getElementById("repayTxnId").value = generateTxnId("PAY");
-
         document.getElementById("repayNotes").value = "";
-
         document.getElementById("repayAccountDetails").classList.add("hidden");
-
         document.getElementById("repayOverpayWarning").classList.add("hidden");
 
-
-
         if (preselectedLoanId) {
-
           select.value = preselectedLoanId;
-
         }
-
-
 
         document.getElementById("modalRepayment").classList.remove("hidden");
-
         document.getElementById("modalRepayment").classList.add("flex");
 
-
-
         if (preselectedLoanId) {
-
           select.dispatchEvent(new Event("change"));
-
         }
-
       };
 
-
-
       document.getElementById("btnTopOpenRepay")?.addEventListener("click", () => openRepayModal());
-
       document.getElementById("btnOpenRepaymentModal")?.addEventListener("click", () => openRepayModal());
 
-
-
       document.getElementById("repayLoanSelect")?.addEventListener("change", (e) => {
-
         const loanId = e.target.value;
-
         const loan = appState.loans.find(l => l.id === loanId);
-
         if (loan) {
-
           const fin = getLoanFinancials(loan);
-
           const netDueToday = getNetPacedDueAfterAdvance(fin);
 
-
-
           document.getElementById("btnChipDueAfterAdvance").onclick = () => {
-
             document.getElementById("repayAmount").value = netDueToday;
-
             updateLiveRepaymentPreview();
-
           };
-
-
 
           document.getElementById("btnChipWeekly").onclick = () => {
-
             document.getElementById("repayAmount").value = Math.min(fin.remainingDue, fin.weeklyRate);
-
             updateLiveRepaymentPreview();
-
           };
-
-
 
           document.getElementById("btnChipFullPay").onclick = () => {
-
             document.getElementById("repayAmount").value = fin.remainingDue;
-
             updateLiveRepaymentPreview();
-
           };
-
         }
-
         updateLiveRepaymentPreview();
-
       });
-
-
 
       document.getElementById("repayAmount")?.addEventListener("input", updateLiveRepaymentPreview);
 
-
-
       document.getElementById("formRepayment")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const loanId = document.getElementById("repayLoanSelect").value;
-
         const amount = parseFloat(document.getElementById("repayAmount").value);
-
         const loan = appState.loans.find(l => l.id === loanId);
 
-
-
         if (!loan) return;
-
         const fin = getLoanFinancials(loan);
 
-
-
         if (amount > fin.remainingDue) {
-
           alert(`Repayment exceeds balance due (${formatCurrency(fin.remainingDue)}).`);
-
           return;
-
         }
-
-
 
         const newRecId = "REC-" + (500 + appState.payments.length + 1);
-
         const rawTxn = document.getElementById("repayTxnId").value.trim();
-
         const payment = {
-
           id: newRecId,
-
           txnId: rawTxn || generateTxnId("PAY"),
-
           loanId: loan.id,
-
           date: document.getElementById("repayDate").value,
-
           amount,
-
           mode: document.getElementById("repayMode").value,
-
           notes: document.getElementById("repayNotes").value.trim()
-
         };
-
-
 
         appState.payments.push(payment);
-
         saveState();
-
-
 
         document.getElementById("modalRepayment").classList.add("hidden");
-
         document.getElementById("modalRepayment").classList.remove("flex");
 
-
-
         renderAll();
-
         openRepaymentReceipt(newRecId);
-
       });
-
-
 
       document.getElementById("editRepayAmount")?.addEventListener("input", (e) => {
-
         const val = parseFloat(e.target.value) || 0;
-
         const max = parseFloat(e.target.max) || Infinity;
-
         const warn = document.getElementById("editRepayOverpayWarning");
-
         const btn = document.getElementById("btnSubmitEditRepayment");
 
-
-
         if (val > max) {
-
           warn.classList.remove("hidden");
-
           btn.disabled = true;
-
         } else {
-
           warn.classList.add("hidden");
-
           btn.disabled = false;
-
         }
-
       });
-
-
 
       document.getElementById("formEditRepayment")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const recId = document.getElementById("editRepayId").value;
-
         const p = appState.payments.find(item => item.id === recId);
-
         if (!p) return;
 
-
-
         const max = parseFloat(document.getElementById("editRepayAmount").max);
-
         const newAmount = parseFloat(document.getElementById("editRepayAmount").value);
 
-
-
         if (newAmount > max) {
-
           alert(`Repayment exceeds maximum permissible due balance (${formatCurrency(max)}).`);
-
           return;
-
         }
-
-
 
         p.date = document.getElementById("editRepayDate").value;
-
         p.mode = document.getElementById("editRepayMode").value;
-
         p.amount = newAmount;
-
         p.txnId = document.getElementById("editRepayTxnId").value.trim() || p.txnId || generateTxnId("PAY");
-
         p.notes = document.getElementById("editRepayNotes").value.trim();
 
-
-
         saveState();
-
         document.getElementById("modalEditRepayment").classList.add("hidden");
-
         document.getElementById("modalEditRepayment").classList.remove("flex");
-
         renderAll();
-
       });
-
-
 
       const openVoucherModal = (type = "INFLOW") => {
-
         const avail = getAvailableVaultCash();
-
         document.getElementById("modalVoucherVaultAvailable").textContent = formatCurrency(avail);
-
         document.getElementById("voucherFlowType").value = type;
-
         document.getElementById("voucherDate").value = appState.operatingDate;
-
         document.getElementById("voucherAmount").value = "";
-
         document.getElementById("voucherMode").value = "Cash";
-
         document.getElementById("voucherTxnId").value = generateTxnId(type === "INFLOW" ? "DEP" : "WDR");
-
         document.getElementById("voucherCounterparty").value = "";
-
         document.getElementById("voucherNotes").value = "";
-
         document.getElementById("voucherBalanceWarning").classList.add("hidden");
-
         document.getElementById("btnSubmitVoucher").disabled = false;
 
-
-
         document.getElementById("modalVoucher").classList.remove("hidden");
-
         document.getElementById("modalVoucher").classList.add("flex");
-
       };
-
-
 
       document.getElementById("btnOpenVoucher")?.addEventListener("click", () => openVoucherModal("INFLOW"));
-
       document.getElementById("btnQuickDeposit")?.addEventListener("click", () => openVoucherModal("INFLOW"));
-
       document.getElementById("btnQuickWithdrawal")?.addEventListener("click", () => openVoucherModal("OUTFLOW"));
-
       document.getElementById("btnLedgerCashIn")?.addEventListener("click", () => openVoucherModal("INFLOW"));
-
       document.getElementById("btnLedgerCashOut")?.addEventListener("click", () => openVoucherModal("OUTFLOW"));
 
-
-
       document.getElementById("voucherAmount")?.addEventListener("input", (e) => {
-
         const flow = document.getElementById("voucherFlowType").value;
-
         const val = parseFloat(e.target.value) || 0;
-
         const avail = getAvailableVaultCash();
-
         const warn = document.getElementById("voucherBalanceWarning");
-
         const btn = document.getElementById("btnSubmitVoucher");
 
-
-
         if (flow === "OUTFLOW" && val > avail) {
-
           warn.classList.remove("hidden");
-
           btn.disabled = true;
-
         } else {
-
           warn.classList.add("hidden");
-
           btn.disabled = false;
-
         }
-
       });
-
-
 
       document.getElementById("voucherFlowType")?.addEventListener("change", (e) => {
-
         const flow = e.target.value;
-
         const txnInput = document.getElementById("voucherTxnId");
-
         if (txnInput && (!txnInput.value || txnInput.value.startsWith("DEP-") || txnInput.value.startsWith("WDR-"))) {
-
           txnInput.value = generateTxnId(flow === "INFLOW" ? "DEP" : "WDR");
-
         }
-
         document.getElementById("voucherAmount").dispatchEvent(new Event("input"));
-
       });
-
-
 
       document.getElementById("formVoucher")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         const type = document.getElementById("voucherFlowType").value;
-
         const amount = parseFloat(document.getElementById("voucherAmount").value);
-
         const avail = getAvailableVaultCash();
 
-
-
         if (type === "OUTFLOW" && amount > avail) {
-
           alert(`Cannot withdraw cash. Amount (${formatCurrency(amount)}) exceeds available vault liquidity (${formatCurrency(avail)}).`);
-
           return;
-
         }
-
-
 
         const newVoucherId = "VCH-" + (1000 + appState.vouchers.length + 1);
-
         const rawTxn = document.getElementById("voucherTxnId").value.trim();
-
         const voucher = {
-
           id: newVoucherId,
-
           txnId: rawTxn || generateTxnId(type === "INFLOW" ? "DEP" : "WDR"),
-
           type,
-
           date: document.getElementById("voucherDate").value,
-
           category: document.getElementById("voucherCategory").value,
-
           amount,
-
           mode: document.getElementById("voucherMode").value,
-
           counterparty: document.getElementById("voucherCounterparty").value.trim(),
-
           notes: document.getElementById("voucherNotes").value.trim()
-
         };
 
-
-
         appState.vouchers.push(voucher);
-
         saveState();
-
-
 
         document.getElementById("modalVoucher").classList.add("hidden");
-
         document.getElementById("modalVoucher").classList.remove("flex");
 
-
-
         renderAll();
-
       });
-
-
 
       // EDIT VOUCHER VALIDATION & SUBMIT
-
       const validateEditVoucherCash = () => {
-
         const vchId = document.getElementById("editVoucherId").value;
-
         const currentV = appState.vouchers.find(v => v.id === vchId);
-
         if (!currentV) return true;
 
-
-
         const newType = document.getElementById("editVoucherFlowType").value;
-
         const newAmt = parseFloat(document.getElementById("editVoucherAmount").value) || 0;
 
-
-
         const currentAvail = getAvailableVaultCash();
-
         const oldEffect = currentV.type === "INFLOW" ? currentV.amount : -currentV.amount;
-
         const newEffect = newType === "INFLOW" ? newAmt : -newAmt;
-
         const projectedAvail = currentAvail - oldEffect + newEffect;
 
-
-
         const warn = document.getElementById("editVoucherBalanceWarning");
-
         const btn = document.getElementById("btnSubmitEditVoucher");
 
-
-
         if (projectedAvail < 0) {
-
           warn.classList.remove("hidden");
-
           btn.disabled = true;
-
           return false;
-
         } else {
-
           warn.classList.add("hidden");
-
           btn.disabled = false;
-
           return true;
-
         }
-
       };
 
-
-
       document.getElementById("editVoucherAmount")?.addEventListener("input", validateEditVoucherCash);
-
       document.getElementById("editVoucherFlowType")?.addEventListener("change", validateEditVoucherCash);
 
-
-
       document.getElementById("formEditVoucher")?.addEventListener("submit", (e) => {
-
         e.preventDefault();
-
         if (!validateEditVoucherCash()) return;
 
-
-
         const vchId = document.getElementById("editVoucherId").value;
-
         const v = appState.vouchers.find(item => item.id === vchId);
-
         if (!v) return;
 
-
-
         v.type = document.getElementById("editVoucherFlowType").value;
-
         v.date = document.getElementById("editVoucherDate").value;
-
         v.category = document.getElementById("editVoucherCategory").value;
-
         v.amount = parseFloat(document.getElementById("editVoucherAmount").value);
-
         v.mode = document.getElementById("editVoucherMode").value;
-
         v.txnId = document.getElementById("editVoucherTxnId").value.trim() || v.txnId || generateTxnId(v.type === "INFLOW" ? "DEP" : "WDR");
-
         v.counterparty = document.getElementById("editVoucherCounterparty").value.trim();
-
         v.notes = document.getElementById("editVoucherNotes").value.trim();
 
-
-
         saveState();
-
         document.getElementById("modalEditVoucher").classList.add("hidden");
-
         document.getElementById("modalEditVoucher").classList.remove("flex");
-
         renderAll();
-
       });
-
-
 
       document.addEventListener("click", (e) => {
-
         const target = e.target.closest("button");
-
         if (!target) return;
 
-
-
         if (target.classList.contains("btn-action-pay") || target.classList.contains("btn-quick-repay")) {
-
           const id = target.getAttribute("data-id");
-
           openRepayModal(id);
-
         }
-
-
 
         if (target.classList.contains("btn-action-edit-loan")) {
-
           const id = target.getAttribute("data-id");
-
           openEditLoanModal(id);
-
         }
-
-
 
         if (target.classList.contains("btn-edit-payment")) {
-
           const id = target.getAttribute("data-id");
-
           openEditRepaymentModal(id);
-
         }
-
-
 
         if (target.classList.contains("btn-edit-voucher")) {
-
           const id = target.getAttribute("data-id");
-
           openEditVoucherModal(id);
-
         }
-
-
 
         if (target.classList.contains("btn-action-slip")) {
-
           const id = target.getAttribute("data-id");
-
           openDisbursalVoucher(id);
-
         }
-
-
 
         if (target.classList.contains("btn-show-receipt")) {
-
           const id = target.getAttribute("data-id");
-
           openRepaymentReceipt(id);
-
         }
-
-
 
         if (target.classList.contains("btn-action-del-loan")) {
-
           const id = target.getAttribute("data-id");
-
           if (confirm(`Delete loan ${id}? All linked repayments will also be removed.`)) {
-
             appState.loans = appState.loans.filter(l => l.id !== id);
-
             appState.payments = appState.payments.filter(p => p.loanId !== id);
-
             saveState();
-
             renderAll();
-
           }
-
         }
-
-
 
         if (target.classList.contains("btn-del-payment")) {
-
           const id = target.getAttribute("data-id");
-
           if (confirm(`Delete repayment receipt ${id}?`)) {
-
             appState.payments = appState.payments.filter(p => p.id !== id);
-
             saveState();
-
             renderAll();
-
           }
-
         }
-
-
 
         if (target.classList.contains("btn-del-voucher")) {
-
           const id = target.getAttribute("data-id");
-
           if (confirm(`Delete cash voucher ${id}?`)) {
-
             appState.vouchers = appState.vouchers.filter(v => v.id !== id);
-
             saveState();
-
             renderAll();
-
           }
-
         }
-
       });
 
-
-
       document.getElementById("loanSearchInput")?.addEventListener("input", renderLoans);
-
       document.getElementById("loanFilterStatus")?.addEventListener("change", renderLoans);
-
       document.getElementById("repaymentSearchInput")?.addEventListener("input", renderRepayments);
-
       document.getElementById("voucherSearchInput")?.addEventListener("input", renderVouchers);
-
       document.getElementById("voucherFilterType")?.addEventListener("change", renderVouchers);
-
       document.getElementById("borrowerSearchInput")?.addEventListener("input", renderBorrowers);
-
       document.getElementById("borrowerStatusFilter")?.addEventListener("change", renderBorrowers);
 
-
-
       document.getElementById("btnPrintReceipt")?.addEventListener("click", () => window.print());
-
       document.getElementById("btnPrintDisbursal")?.addEventListener("click", () => window.print());
 
-
-
       renderAll();
-
     });
-
   </script>
-
 </body>
-
 </html>
